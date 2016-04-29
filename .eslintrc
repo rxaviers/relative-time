@@ -1,0 +1,21 @@
+{
+  "env": {
+    "browser": true,
+    "es6": true,
+    "mocha": true,
+    "node": true
+  },
+  "extends": [
+    "defaults"
+  ],
+  "globals": {
+    "expect": true
+  },
+  "parser": "babel-eslint",
+  "rules": {
+    "no-console": 0,
+    "no-trailing-spaces": 1,
+    "quotes": [1, "double"],
+    "semi": 1
+  }
+}
