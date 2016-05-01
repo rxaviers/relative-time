@@ -3,6 +3,13 @@
   "version": "0.0.3",
   "description": "Formats JavaScript dates to relative time strings (e.g., \"3 hours ago\")",
   "main": "dist/relative-time.js",
+  "files": [
+    "dist/",
+    "getting_started.js",
+    "LICENSE-MIT",
+    "README.md",
+    "src/"
+  ],
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/rxaviers/relative-time.git"
