@@ -1,7 +1,8 @@
 /**
  * Rule: (equivalent for future)
  *
- * [0s, 1min[ - just now
+ * 0s - now
+ * ]0s, 1min[ - x seconds ago
  * [1min, 2min[ - 1 minute ago
  * [xmin, x+1min[ - x minutes ago
  * [1h, 2h[ - 1 hour ago
@@ -45,7 +46,7 @@ export default class RelativeTime {
     var absDiff = Math.abs(diff);
     var round = Math[diff > 0 ? "floor" : "ceil"];
 
-    // just now.
+    // now or x seconds ago.
     if (absDiff < minute) {
       return formatters.second(round(diff / second));
     }
@@ -91,7 +92,7 @@ export default class RelativeTime {
 }
 
 // TODO: Remove redundancy. The only reason this code is that ugly is to get
-// supported by globalize-compiler (it will read the static formatters).
+// supported by globalize-compiler (which reads the static formatters).
 RelativeTime.initializeFormatters = function(globalize) {
   if (globalize) {
     return {
