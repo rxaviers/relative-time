@@ -82,6 +82,8 @@ function final_message {
 	echo Now you need to:
 	echo git push --tags origin
 	echo npm publish
+	echo git checkout master
+	echo git push origin master
 	echo git branch -D $TARGET_BRANCH
 }
 
@@ -92,5 +94,4 @@ assertions $1 &&
 	git checkout -b $TARGET_BRANCH &&
 	build &&
 	tag $1 &&
-	git checkout master > /dev/null &&
 	final_message
