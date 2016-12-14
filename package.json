@@ -53,6 +53,6 @@
     "sinon": "^1.17.3"
   },
   "dependencies": {
-    "globalize": "^1.1.1"
+    "globalize": "^1.1.1 || >=1.2.0-alpha <2.0.0"
   }
 }
