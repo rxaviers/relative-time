@@ -24,7 +24,7 @@ function assertions {
 		exit 1
 	fi
 
-	CURRENT_BRANCH=`git name-rev --name-only HEAD`
+	CURRENT_BRANCH=`git rev-parse --abbrev-ref HEAD`
 	if [ :$CURRENT_BRANCH != :master ]; then
 		echo 'Current branch `'$CURRENT_BRANCH'`' "isn't" '`master`.'
 		echo Quiting...
