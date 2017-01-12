@@ -45,6 +45,15 @@ export default class RelativeTime {
     var diff = date.getTime() - now.getTime();
     var absDiff = Math.abs(diff);
     var round = Math[diff > 0 ? "floor" : "ceil"];
+    var diffYears = date.getFullYear() - now.getFullYear();
+    var diffMonths = date.getMonth() - now.getMonth();
+    var diffDays = date.getDate() - now.getDate();
+    if (diffYears) {
+      diffMonths += date > now ? 12 : -12;
+    }
+    if (diffMonths) {
+      diffDays += date > now ? daysInMonth(now) : -daysInMonth(date);
+    }
 
     // now or x seconds ago.
     if (absDiff < minute) {
@@ -58,7 +67,6 @@ export default class RelativeTime {
 
     // x hours ago or yesterday.
     if (absDiff < day) {
-      let diffDays = date.getDate() - now.getDate();
       if (absDiff > _6hours && diffDays) {
         return formatters.day(diffDays);
       }
@@ -67,25 +75,15 @@ export default class RelativeTime {
 
     // x days ago or last month
     if (absDiff < month) {
-      let diffMonths = date.getMonth() - now.getMonth();
       if (absDiff > _7days && diffMonths) {
         return formatters.month(diffMonths);
-      }
-      let diffDays = date.getDate() - now.getDate();
-      if (diffMonths) {
-        diffDays += date > now ? daysInMonth(now) : -daysInMonth(date);
       }
       return formatters.day(diffDays);
     }
 
     // x months ago or last year or x years ago
-    var diffYears = date.getFullYear() - now.getFullYear();
     if (absDiff > _3months && diffYears) {
       return formatters.year(diffYears);
-    }
-    var diffMonths = date.getMonth() - now.getMonth();
-    if (diffYears) {
-      diffMonths += date > now ? 12 : -12;
     }
     return formatters.month(diffMonths);
   }

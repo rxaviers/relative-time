@@ -43,6 +43,14 @@ describe("relative-time", function() {
     sinon.useFakeTimers(new Date("2016-04-10 23:00").getTime());
     expect(relativeTime.format(new Date("2016-04-11 05:00"))).to.equal("in 6 hours");
     expect(relativeTime.format(new Date("2016-04-11 06:00"))).to.equal("tomorrow");
+
+    sinon.useFakeTimers(new Date("2016-01-31 23:00").getTime());
+    expect(relativeTime.format(new Date("2016-02-01 05:00"))).to.equal("in 6 hours");
+    expect(relativeTime.format(new Date("2016-02-01 07:00"))).to.equal("tomorrow");
+
+    sinon.useFakeTimers(new Date("2016-12-31 23:00").getTime());
+    expect(relativeTime.format(new Date("2017-01-01 05:00"))).to.equal("in 6 hours");
+    expect(relativeTime.format(new Date("2017-01-01 07:00"))).to.equal("tomorrow");
   });
 
   it("should format days distant dates", function() {
@@ -66,18 +74,22 @@ describe("relative-time", function() {
     expect(relativeTime.format(new Date("2016-05-01 00:00"))).to.equal("next month");
     expect(relativeTime.format(new Date("2016-11-31 23:59"))).to.equal("in 8 months");
 
-    // sinon.useFakeTimers(new Date("2016-10-02 12:00").getTime());
-    // element = shallow(<RelativeTime>{new Date("2017-01-01 00:00")}</RelativeTime>);
-    // expect(element.text()).to.equal("in 3 months");
+    sinon.useFakeTimers(new Date("2017-01-12 18:30").getTime());
+    expect(relativeTime.format(new Date("2016-12-29 18:30"))).to.equal("last month");
 
-    // sinon.useFakeTimers(new Date("2016-02-28 12:00").getTime());
-    // element = shallow(<RelativeTime>{new Date("2015-12-31 23:59")}</RelativeTime>);
-    // expect(element.text()).to.equal("3 months ago");
+    sinon.useFakeTimers(new Date("2016-12-29 18:30").getTime());
+    expect(relativeTime.format(new Date("2017-01-12 18:30"))).to.equal("next month");
+
+    sinon.useFakeTimers(new Date("2016-02-28 12:00").getTime());
+    expect(relativeTime.format(new Date("2015-12-31 23:59"))).to.equal("2 months ago");
   });
 
   it("should format years distant dates", function() {
     expect(relativeTime.format(new Date("2010-06-01 12:00"))).to.equal("6 years ago");
     expect(relativeTime.format(new Date("2015-12-31 23:59"))).to.equal("last year");
+    expect(relativeTime.format(new Date("2017-01-01 00:00"))).to.equal("next year");
+
+    sinon.useFakeTimers(new Date("2016-10-02 12:00").getTime());
     expect(relativeTime.format(new Date("2017-01-01 00:00"))).to.equal("next year");
   });
 });
