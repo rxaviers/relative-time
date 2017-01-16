@@ -1,6 +1,6 @@
 {
   "name": "relative-time",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Formats JavaScript dates to relative time strings (e.g., \"3 hours ago\")",
   "main": "dist/relative-time.js",
   "files": [
