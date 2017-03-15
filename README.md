@@ -2,10 +2,10 @@
 
 Formats JavaScript dates to relative time strings (e.g., "3 hours ago").
 
-Based on the [Unicode CLDR][] locale data. Powered by [jquery/globalize][].
+Based on the [Unicode CLDR][] locale data. Powered by [globalizejs/globalize][].
 
 [Unicode CLDR]: http://cldr.unicode.org/
-[jquery/globalize]: http://globalizejs.com/
+[globalizejs/globalize]: http://globalizejs.com/
 
 ## Usage
 
