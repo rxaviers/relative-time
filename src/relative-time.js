@@ -1,4 +1,5 @@
 import Globalize from "globalize";
+import ZonedDateTime from "zoned-date-time";
 
 const second = 1e3;
 const minute = 6e4;
@@ -21,7 +22,7 @@ function defineGetter(obj, prop, get) {
 }
 
 function startOf(date, unit) {
-  date = new Date(date.getTime());
+  date = date instanceof ZonedDateTime ? date.clone() : new Date(date.getTime());
   switch (unit) {
     case "year": date.setMonth(0);
     // falls through
@@ -43,9 +44,15 @@ export default class RelativeTime {
     this.formatters = RelativeTime.initializeFormatters(...arguments);
   }
 
-  format(date, {unit = "best-fit"} = {}) {
+  format(date, {timeZoneData = null, unit = "best-fit"} = {}) {
     var formatters = this.formatters;
     var now = new Date();
+
+    if (timeZoneData) {
+      date = new ZonedDateTime(date, timeZoneData);
+      now = new ZonedDateTime(now, timeZoneData);
+    }
+
     var diff = {
       _: {},
       ms: date.getTime() - now.getTime(),
