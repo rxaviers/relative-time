@@ -9,9 +9,29 @@ Based on the [Unicode CLDR][] locale data. Powered by [globalizejs/globalize][].
 
 ## Why
 
-- Leverages Unicode CLDR (via [Globalize](http://globalizejs.com)), the largest and most extensive standard repository of locale data available.
-  - It also means messages like `"today"`, `"yesterday"`, `"last month"` are available and properly localized in the various CLDR supported locales.
-- What you get is correct, for example:
+### Leverages Unicode CLDR
+
+Leverages Unicode CLDR (via [Globalize](http://globalizejs.com)), the largest and most extensive standard repository of locale data available.
+
+It also means messages like `"today"`, `"yesterday"`, `"last month"` are available and properly localized in the various CLDR supported locales.
+
+### IANA time zone support
+
+```
+hr.  | | | | | | | | | | | | | | | | | | | | | | | | | |
+day  | x .  .              N |   .  .                |
+PDT  .   .  Mar 21 PDT       .   .  Mar 23, 00:00 PDT
+EDT  .   Mar 21 EDT          .   Mar 22, 00:00 EDT
+UTC  Mar 21                  Mar 22, 00:00
+```
+The relative time between `x` and now `N` is:
+
+| time zone           | relative-time result |
+| ------------------- | -------------------- |
+| America/New_York    | `"yesterday"`        |
+| America/Los_Angeles | `"21 hours ago"`     |
+
+### What you get is correct
 
 #### day
 
@@ -19,16 +39,16 @@ Based on the [Unicode CLDR][] locale data. Powered by [globalizejs/globalize][].
        Mar 21, 00:00           Mar 22, 00:00           Mar 23, 00:00           Mar 24, 00:00
 hr.  | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | |
 day    |                    b  |          a            |        N              |
-       Mar 21                  Mar 22                  Mar 23                  Mar 24    
+       Mar 21                  Mar 22                  Mar 23                  Mar 24
 
 ```
 
 Let's assume now (`N`) is *Mar 23, 9 AM*.
 
-|                       | relative-time | moment.js       |
-| --------------------- | ---------------------- | --------------- |
-| *Mar 22, 11 AM* (`a`) | `"yesterday"`          | `"a day ago"`   |
-| *Mar 21, 8 PM* (`b`)  | `"2 days ago"`         | `"a day ago"` ❓ |
+|                       | relative-time  | moment.js       |
+| --------------------- | -------------- | --------------- |
+| *Mar 22, 11 AM* (`a`) | `"yesterday"`  | `"a day ago"`   |
+| *Mar 21, 8 PM* (`b`)  | `"2 days ago"` | `"a day ago"` ❓ |
 
 Note `relative-time` checks for the actual day change instead of counting on approximate number of hours to turn the unit.
 
@@ -42,12 +62,12 @@ mo.  |       d                  c|b   a                         N|
 
 Let's assume now (`N`) is *Mar 31*.
 
-|                | relative-time | moment.js          |
-| -------------- | ---------------------- | ------------------ |
-| *Mar 5* (`a`)  | `"26 days ago"`        | `"a month ago"` ❓  |
-| *Mar 1* (`b`)  | `"30 days ago"`        | `"a month ago"` ❓  |
-| *Feb 28* (`c`) | `"last month"`         | `"a month ago"`    |
-| *Feb 9* (`d`)  | `"last month"`         | `"2 months ago"` ❓ |
+|                | relative-time   | moment.js          |
+| -------------- | --------------- | ------------------ |
+| *Mar 5* (`a`)  | `"26 days ago"` | `"a month ago"` ❓  |
+| *Mar 1* (`b`)  | `"30 days ago"` | `"a month ago"` ❓  |
+| *Feb 28* (`c`) | `"last month"`  | `"a month ago"`    |
+| *Feb 9* (`d`)  | `"last month"`  | `"2 months ago"` ❓ |
 
 Note `relative-time` checks for the actual month change instead of counting on approximate number of days to turn the unit.
 
@@ -69,13 +89,49 @@ console.log(relativeTime.format(new Date()));
 // > now
 ```
 
+### IANA time zone support
+
+In addition to the above, install `iana-tz-data`.
+
+```
+npm install --save iana-tz-data
+```
+
+The example below assume now is `2016-04-10T12:00:00Z`, i.e.,
+
+|      | UTC                  | America/Los_Angeles             | Europe/Berlin                            |
+| ---- | -------------------- | ------------------------------- | ---------------------------------------- |
+| date | 2016-04-10T00:00:00Z | 2016-04-09 17:00:00 GMT-7 (PDT) | 2016-04-10 14:00:00 GMT+2 (Central European Summer Time) |
+| now  | 2016-04-10T12:00:00Z | 2016-04-10 05:00:00 GMT-7 (PDT) | 2016-04-10 14:00:00 GMT+2 (Central European Summer Time) |
+
+```js
+var ianaTzData = require("iana-tz-data");
+var date = new Date("2016-04-10T00:00:00Z");
+
+// Target: 2016-04-09 17:00:00 GMT-7 (PDT)
+// Now: 2016-04-10 05:00:00 GMT-7 (PDT)
+relativeTime.format(date, {
+  timeZoneData: ianaTzData.zoneData.America.Los_Angeles
+});
+// > "yesterday"
+
+// Target: 2016-04-10 14:00:00 GMT+2 (Central European Summer Time)
+// Now: 2016-04-10 14:00:00 GMT+2 (Central European Summer Time)
+relativeTime.format(date, {
+  timeZoneData: ianaTzData.zoneData.Europe.Berlin
+});
+// > "12 hours ago"
+```
+
 ## API
 
 ### `format(date{, options})`
 
 ### date
 
-### options.unit
+A [JavaScript date object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date), i.e., `new Date()`.
+
+### options.unit (optional)
 
 Unit for formatting. If the unit is not provided, `"best-fit"` is used.
 
@@ -98,6 +154,16 @@ It automatically picks a unit based on the relative time scale. Basically, it lo
 - If `absDiffHours > 0 && absDiffMinutes > threshold.minute`, return `"hour"`.
 - If `absDiffMinutes > 0 && absDiffSeconds > threshold.second`, return `"minutes"`.
 - Return `"second"`.
+
+### options.timeZoneData (optional)
+
+The *zdumped* IANA timezone data (found on the [iana-tz-data](https://github.com/rxaviers/iana-tz-data) package) for the desired timeZoneId.
+
+If not provided, the user's environment time zone is used (default).
+
+### Return
+
+Returns the formatted relative time string given `date` and `options`.
 
 ## Appendix
 
@@ -163,7 +229,7 @@ g: 3 hours ago
        Mar 21, 00:00           Mar 22, 00:00           Mar 23, 00:00           Mar 24, 00:00
 hr.  | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | |
 day    | e                   d | c                   b |     a N               |
-       Mar 21                  Mar 22                  Mar 23                  Mar 24    
+       Mar 21                  Mar 22                  Mar 23                  Mar 24
 
 N: The assumed now
 a: today / 0 days ago
@@ -210,7 +276,7 @@ Note the months distances doesn't match weeks distance or days distance uniforml
 #### year
 
 ```
-          Jan               Jan               Jan               Jan               Jan  
+          Jan               Jan               Jan               Jan               Jan
 mo. |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 yr.       |g             f  |e             d  |c             b  |a  N             |
           2013              2014              2015              2016              2017

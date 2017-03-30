@@ -1,4 +1,5 @@
 import RelativeTime from "../src/relative-time";
+import ianaTzData from "iana-tz-data";
 import sinon from "sinon";
 
 describe("relative-time", function() {
@@ -8,15 +9,15 @@ describe("relative-time", function() {
     relativeTime = new RelativeTime();
   });
 
-  beforeEach(function() {
-    clock = sinon.useFakeTimers(new Date("2016-04-10 12:00:00").getTime());
-  });
-
-  afterEach(function() {
-    clock.restore();
-  });
-
   describe("bestFit", function() {
+    beforeEach(function() {
+      clock = sinon.useFakeTimers(new Date("2016-04-10 12:00:00").getTime());
+    });
+
+    afterEach(function() {
+      clock.restore();
+    });
+
     it("should format seconds-distant dates", function() {
       expect(relativeTime.format(new Date("2016-04-10 11:59:01"))).to.equal("59 seconds ago");
       expect(relativeTime.format(new Date("2016-04-10 12:00:00"))).to.equal("now");
@@ -96,6 +97,14 @@ describe("relative-time", function() {
   });
 
   describe("explicit units", function() {
+    beforeEach(function() {
+      clock = sinon.useFakeTimers(new Date("2016-04-10 12:00:00").getTime());
+    });
+
+    afterEach(function() {
+      clock.restore();
+    });
+
     it("shold format relative time using seconds", function() {
       expect(relativeTime.format(new Date("2016-04-10 11:59:01"), {unit: "second"})).to.equal("59 seconds ago");
       expect(relativeTime.format(new Date("2016-04-10 11:01:00"), {unit: "second"})).to.equal("3,540 seconds ago");
@@ -125,6 +134,72 @@ describe("relative-time", function() {
     it("shold format relative time using months", function() {
       expect(relativeTime.format(new Date("2016-04-10 23:59:59"), {unit: "month"})).to.equal("this month");
       expect(relativeTime.format(new Date("2017-01-01 00:00"), {unit: "month"})).to.equal("in 9 months");
+    });
+  });
+
+  describe("time zone", function() {
+    beforeEach(function() {
+      clock = sinon.useFakeTimers(new Date("2016-04-10T12:00:00Z").getTime());
+    });
+
+    afterEach(function() {
+      clock.restore();
+    });
+
+    it("should support using specific time zone", function() {
+      // Target: 2016-04-09 17:00:00 GMT-7 (PDT)
+      // Now: 2016-04-10 05:00:00 GMT-7 (PDT)
+      expect(relativeTime.format(new Date("2016-04-10T00:00:00Z"), {
+        timeZoneData: ianaTzData.zoneData.America.Los_Angeles
+      })).to.equal("yesterday");
+
+      // Target: 2016-04-10 14:00:00 GMT+2 (Central European Summer Time)
+      // Now: 2016-04-10 14:00:00 GMT+2 (Central European Summer Time)
+      expect(relativeTime.format(new Date("2016-04-10T00:00:00Z"), {
+        timeZoneData: ianaTzData.zoneData.Europe.Berlin
+      })).to.equal("12 hours ago");
+
+      // Target: 2016-03-31 17:00:00 GMT-7 (PDT)
+      // Now: 2016-04-10 05:00:00 GMT-7 (PDT)
+      expect(relativeTime.format(new Date("2016-04-01T00:00:00Z"), {
+        timeZoneData: ianaTzData.zoneData.America.Los_Angeles
+      })).to.equal("last month");
+
+      // Target: 2016-04-01 02:00:00 GMT+2 (Central European Summer Time)
+      // Now: 2016-04-10 14:00:00 GMT+2 (Central European Summer Time)
+      expect(relativeTime.format(new Date("2016-04-01T00:00:00Z"), {
+        timeZoneData: ianaTzData.zoneData.Europe.Berlin
+      })).to.equal("9 days ago");
+
+      // Target: 2015-12-31 16:00:00 GMT-8 (PST)
+      // Now: 2016-04-10 05:00:00 GMT-7 (PDT)
+      expect(relativeTime.format(new Date("2016-01-01T00:00:00Z"), {
+        timeZoneData: ianaTzData.zoneData.America.Los_Angeles
+      })).to.equal("last year");
+
+      // Target: 2016-01-01 01:00:00 GMT+1 (Central European Standard Time)'
+      // Now: 2016-04-10 14:00:00 GMT+2 (Central European Summer Time)
+      expect(relativeTime.format(new Date("2016-01-01T00:00:00Z"), {
+        timeZoneData: ianaTzData.zoneData.Europe.Berlin
+      })).to.equal("3 months ago");
+    });
+
+    it("should support daylight savings edge cases", function() {
+      clock = sinon.useFakeTimers(new Date("2017-02-19T02:00:00.000Z").getTime());
+
+      // Target: 2017-02-18 23:00:00 GMT-2 (BRST)
+      // Now: 2017-02-18 23:00:00 GMT-3 (BRT)
+      // expect(relativeTime.format(new Date("2017-02-19T01:00:00.000Z"), {
+      //   timeZoneData: ianaTzData.zoneData.America.Sao_Paulo
+      // })).to.equal("1 hour ago");
+      // TODO: This currently fails and returns "now".
+
+      // Target: 2017-03-12 01:00:00 GMT-8 (PST)
+      // Now: 2017-03-12 03:00:00 GMT-7 (PDT)
+      clock = sinon.useFakeTimers(new Date("2017-03-12T10:00:00.000Z").getTime());
+      expect(relativeTime.format(new Date("2017-03-12T09:00:00.000Z"), {
+        timeZoneData: ianaTzData.zoneData.America.Los_Angeles
+      })).to.equal("1 hour ago");
     });
   });
 });

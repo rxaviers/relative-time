@@ -46,10 +46,12 @@
     "cldr-data": ">=29.0.1",
     "eslint": "^3.18.0",
     "eslint-config-defaults": "^9.0.0",
+    "iana-tz-data": ">=2017.1.0",
     "mocha": "^2.4.5",
     "sinon": "^1.17.3"
   },
   "dependencies": {
-    "globalize": "^1.1.1"
+    "globalize": "^1.1.1",
+    "zoned-date-time": "0.0.3"
   }
 }
