@@ -30,7 +30,7 @@ Let's assume now (`N`) is *Mar 23, 9 AM*.
 | *Mar 22, 11 AM* (`a`) | `"yesterday"`          | `"a day ago"`   |
 | *Mar 21, 8 PM* (`b`)  | `"2 days ago"`         | `"a day ago"` ❓ |
 
-Note `rxaviers/relative-time` checks for the actual day change instead of counting on approximate number of hours to turn the unit (saved by a customizable threshold).
+Note `rxaviers/relative-time` checks for the actual day change instead of counting on approximate number of hours to turn the unit.
 
 #### month
 
@@ -49,7 +49,7 @@ Let's assume now (`N`) is *Mar 31*.
 | *Feb 28* (`c`) | `"last month"`         | `"a month ago"`    |
 | *Feb 9* (`d`)  | `"last month"`         | `"2 months ago"` ❓ |
 
-Note `rxaviers/relative-time` checks for the actual month change instead of counting on approximate number of days to turn the unit (saved by a customizable threshold).
+Note `rxaviers/relative-time` checks for the actual month change instead of counting on approximate number of days to turn the unit.
 
 ## Usage
 
