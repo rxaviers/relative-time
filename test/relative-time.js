@@ -97,34 +97,34 @@ describe("relative-time", function() {
 
   describe("explicit units", function() {
     it("shold format relative time using seconds", function() {
-      expect(relativeTime.format(new Date("2016-04-10 11:59:01"), "second")).to.equal("59 seconds ago");
-      expect(relativeTime.format(new Date("2016-04-10 11:01:00"), "second")).to.equal("3,540 seconds ago");
-      expect(relativeTime.format(new Date("2016-04-10 00:00"), "second")).to.equal("43,200 seconds ago");
+      expect(relativeTime.format(new Date("2016-04-10 11:59:01"), {unit: "second"})).to.equal("59 seconds ago");
+      expect(relativeTime.format(new Date("2016-04-10 11:01:00"), {unit: "second"})).to.equal("3,540 seconds ago");
+      expect(relativeTime.format(new Date("2016-04-10 00:00"), {unit: "second"})).to.equal("43,200 seconds ago");
     });
 
     it("shold format relative time using minutes", function() {
-      expect(relativeTime.format(new Date("2016-04-10 12:00:47"), "minute")).to.equal("this minute");
-      expect(relativeTime.format(new Date("2016-04-10 11:59:45"), "minute")).to.equal("1 minute ago");
-      expect(relativeTime.format(new Date("2016-04-10 11:01:00"), "minute")).to.equal("59 minutes ago");
-      expect(relativeTime.format(new Date("2016-04-01 00:00"), "minute")).to.equal("13,680 minutes ago");
+      expect(relativeTime.format(new Date("2016-04-10 12:00:47"), {unit: "minute"})).to.equal("this minute");
+      expect(relativeTime.format(new Date("2016-04-10 11:59:45"), {unit: "minute"})).to.equal("1 minute ago");
+      expect(relativeTime.format(new Date("2016-04-10 11:01:00"), {unit: "minute"})).to.equal("59 minutes ago");
+      expect(relativeTime.format(new Date("2016-04-01 00:00"), {unit: "minute"})).to.equal("13,680 minutes ago");
     });
 
     it("shold format relative time using hours", function() {
-      expect(relativeTime.format(new Date("2016-04-10 12:45:00"), "hour")).to.equal("this hour");
-      expect(relativeTime.format(new Date("2016-04-10 11:01:00"), "hour")).to.equal("1 hour ago");
-      expect(relativeTime.format(new Date("2016-04-10 00:00"), "hour")).to.equal("12 hours ago");
-      expect(relativeTime.format(new Date("2016-04-01 00:00"), "hour")).to.equal("228 hours ago");
-      expect(relativeTime.format(new Date("2016-01-01 00:00"), "hour")).to.equal("2,413 hours ago");
+      expect(relativeTime.format(new Date("2016-04-10 12:45:00"), {unit: "hour"})).to.equal("this hour");
+      expect(relativeTime.format(new Date("2016-04-10 11:01:00"), {unit: "hour"})).to.equal("1 hour ago");
+      expect(relativeTime.format(new Date("2016-04-10 00:00"), {unit: "hour"})).to.equal("12 hours ago");
+      expect(relativeTime.format(new Date("2016-04-01 00:00"), {unit: "hour"})).to.equal("228 hours ago");
+      expect(relativeTime.format(new Date("2016-01-01 00:00"), {unit: "hour"})).to.equal("2,413 hours ago");
     });
 
     it("shold format relative time using days", function() {
-      expect(relativeTime.format(new Date("2016-04-10 11:30:00"), "day")).to.equal("today");
-      expect(relativeTime.format(new Date("2016-01-01 00:00"), "day")).to.equal("100 days ago");
+      expect(relativeTime.format(new Date("2016-04-10 11:30:00"), {unit: "day"})).to.equal("today");
+      expect(relativeTime.format(new Date("2016-01-01 00:00"), {unit: "day"})).to.equal("100 days ago");
     });
 
     it("shold format relative time using months", function() {
-      expect(relativeTime.format(new Date("2016-04-10 23:59:59"), "month")).to.equal("this month");
-      expect(relativeTime.format(new Date("2017-01-01 00:00"), "month")).to.equal("in 9 months");
+      expect(relativeTime.format(new Date("2016-04-10 23:59:59"), {unit: "month"})).to.equal("this month");
+      expect(relativeTime.format(new Date("2017-01-01 00:00"), {unit: "month"})).to.equal("in 9 months");
     });
   });
 });
