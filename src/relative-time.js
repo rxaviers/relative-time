@@ -111,24 +111,24 @@ export default class RelativeTime {
 RelativeTime.bestFit = function(absDiff) {
   let threshold = this.threshold;
   switch(true) {
-    case absDiff.years > 0 && absDiff.months >= threshold.month: return "year";
-    case absDiff.months > 0 && absDiff.days >= threshold.day: return "month";
-    // case absDiff.months > 0 && absDiff.weeks >= threshold.week: return "month";
-    // case absDiff.weeks > 0 && absDiff.days >= threshold.day: return "week";
-    case absDiff.days > 0 && absDiff.hours >= threshold.hour: return "day";
-    case absDiff.hours > 0 && absDiff.minutes >= threshold.minute: return "hour";
-    case absDiff.minutes > 0 && absDiff.seconds >= threshold.second: return "minute";
+    case absDiff.years > 0 && absDiff.months > threshold.month: return "year";
+    case absDiff.months > 0 && absDiff.days > threshold.day: return "month";
+    // case absDiff.months > 0 && absDiff.weeks > threshold.week: return "month";
+    // case absDiff.weeks > 0 && absDiff.days > threshold.day: return "week";
+    case absDiff.days > 0 && absDiff.hours > threshold.hour: return "day";
+    case absDiff.hours > 0 && absDiff.minutes > threshold.minute: return "hour";
+    case absDiff.minutes > 0 && absDiff.seconds > threshold.second: return "minute";
     default: return "second";
   }
 };
 
 RelativeTime.threshold = {
-  month: 3, // at least 3 months before using year.
+  month: 2, // at least 2 months before using year.
   // week: 4, // at least 4 weeks before using month.
-  day: 7, // at least 7 days before using month.
-  hour: 7, // at least 7 hours before using day.
-  minute: 60, // at least 60 minutes before using hour.
-  second: 60 // at least 60 seconds before using minute.
+  day: 6, // at least 6 days before using month.
+  hour: 6, // at least 6 hours before using day.
+  minute: 59, // at least 59 minutes before using hour.
+  second: 59 // at least 59 seconds before using minute.
 };
 
 // TODO: Remove redundancy. The only reason this code is that ugly is to get
