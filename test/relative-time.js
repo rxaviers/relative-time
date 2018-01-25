@@ -74,7 +74,7 @@ describe("relative-time", function() {
       expect(relativeTime.format(new Date("2016-01-01 00:00"))).to.equal("3 months ago");
       expect(relativeTime.format(new Date("2016-03-01 00:00"))).to.equal("last month");
       expect(relativeTime.format(new Date("2016-05-01 00:00"))).to.equal("next month");
-      expect(relativeTime.format(new Date("2016-11-31 23:59"))).to.equal("in 8 months");
+      expect(relativeTime.format(new Date("2016-12-01 23:59"))).to.equal("in 8 months");
 
       sinon.useFakeTimers(new Date("2017-01-12 18:30").getTime());
       expect(relativeTime.format(new Date("2016-12-29 18:30"))).to.equal("last month");
