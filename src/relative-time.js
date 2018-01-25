@@ -1,5 +1,5 @@
-import Globalize from "globalize";
-import ZonedDateTime from "zoned-date-time";
+// import Globalize from "globalize";
+// import ZonedDateTime from "zoned-date-time";
 
 const second = 1e3;
 const minute = 6e4;
@@ -22,7 +22,8 @@ function defineGetter(obj, prop, get) {
 }
 
 function startOf(date, unit) {
-  date = date instanceof ZonedDateTime ? date.clone() : new Date(date.getTime());
+  // date = date instanceof ZonedDateTime ? date.clone() : new Date(date.getTime());
+  date = new Date(date.getTime());
   switch (unit) {
     case "year": date.setMonth(0);
     // falls through
@@ -39,9 +40,9 @@ function startOf(date, unit) {
   return date;
 }
 
-export default class RelativeTime {
+class RelativeTime {
   constructor() {
-    this.formatters = RelativeTime.initializeFormatters(...arguments);
+    this.rtf = new Intl.RelativeTimeFormat(undefined);
   }
 
   format(date, {timeZoneData = null, unit = "best-fit"} = {}) {
@@ -104,13 +105,13 @@ export default class RelativeTime {
     }
 
     switch(unit) {
-      case "year": return formatters.year(diff.years);
-      case "month": return formatters.month(diff.months);
+      case "year": return this.rtf.format(diff.years, unit);
+      case "month": return this.rtf.format(diff.months, unit);
       // case "week": return formatters.week(diff.weeks);
-      case "day": return formatters.day(diff.days);
-      case "hour": return formatters.hour(diff.hours);
-      case "minute": return formatters.minute(diff.minutes);
-      default: return formatters.second(diff.seconds);
+      case "day": return this.rtf.format(diff.days, unit);
+      case "hour": return this.rtf.format(diff.hours, unit);
+      case "minute": return this.rtf.format(diff.minutes, unit);
+      default: return this.rtf.format(diff.seconds, unit);
     }
   }
 }
@@ -136,27 +137,4 @@ RelativeTime.threshold = {
   hour: 6, // at least 6 hours before using day.
   minute: 59, // at least 59 minutes before using hour.
   second: 59 // at least 59 seconds before using minute.
-};
-
-// TODO: Remove redundancy. The only reason this code is that ugly is to get
-// supported by globalize-compiler (which reads the static formatters).
-RelativeTime.initializeFormatters = function(globalize) {
-  if (globalize) {
-    return {
-      second: globalize.relativeTimeFormatter("second"),
-      minute: globalize.relativeTimeFormatter("minute"),
-      hour: globalize.relativeTimeFormatter("hour"),
-      day: globalize.relativeTimeFormatter("day"),
-      month: globalize.relativeTimeFormatter("month"),
-      year: globalize.relativeTimeFormatter("year")
-    };
-  }
-  return {
-    second: Globalize.relativeTimeFormatter("second"),
-    minute: Globalize.relativeTimeFormatter("minute"),
-    hour: Globalize.relativeTimeFormatter("hour"),
-    day: Globalize.relativeTimeFormatter("day"),
-    month: Globalize.relativeTimeFormatter("month"),
-    year: Globalize.relativeTimeFormatter("year")
-  };
 };
