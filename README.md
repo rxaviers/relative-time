@@ -78,7 +78,7 @@ Note `relative-time` checks for the actual month change instead of counting on a
 ```js
 var cldrData = require("cldr-data");
 var Globalize = require("globalize");
-var RelativeTime = require("relative-time");
+var RelativeTime = require("relative-time").default;
 
 // Feed Globalize on CLDR.
 Globalize.load(cldrData.entireSupplemental(), cldrData.entireMainFor("en"));
