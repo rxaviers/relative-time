@@ -278,45 +278,30 @@ RelativeTime.threshold = {
   second: 59 // at least 59 seconds before using minute.
 };
 
-// TODO: Remove redundancy. The only reason this code is that ugly was to get
-// supported by globalize-compiler (which read the static formatters).
 RelativeTime.initializeFormatters = function(localesOrFormatter, options) {
-  let formatter;
   let locales = localesOrFormatter;
   let formatOptions = options;
 
   if (localesOrFormatter && typeof localesOrFormatter.format === "function" &&
       typeof localesOrFormatter.resolvedOptions === "function") {
-    formatter = localesOrFormatter;
-  } else {
-    if (localesOrFormatter && typeof localesOrFormatter === "object" && !Array.isArray(localesOrFormatter)) {
-      formatOptions = localesOrFormatter;
-      locales = undefined;
-    }
-
-    formatter = new Intl.RelativeTimeFormat(locales, Object.assign({
-      numeric: "auto"
-    }, formatOptions));
+    return createFormatterMap(localesOrFormatter);
   }
 
-  return {
-    second(value) {
-      return formatter.format(value, "second");
-    },
-    minute(value) {
-      return formatter.format(value, "minute");
-    },
-    hour(value) {
-      return formatter.format(value, "hour");
-    },
-    day(value) {
-      return formatter.format(value, "day");
-    },
-    month(value) {
-      return formatter.format(value, "month");
-    },
-    year(value) {
-      return formatter.format(value, "year");
-    }
-  };
+  if (localesOrFormatter && typeof localesOrFormatter === "object" && !Array.isArray(localesOrFormatter)) {
+    formatOptions = localesOrFormatter;
+    locales = undefined;
+  }
+
+  return createFormatterMap(new Intl.RelativeTimeFormat(locales, Object.assign({
+    numeric: "auto"
+  }, formatOptions)));
 };
+
+function createFormatterMap(formatter) {
+  return ["second", "minute", "hour", "day", "month", "year"].reduce(function(map, unit) {
+    map[unit] = function(value) {
+      return formatter.format(value, unit);
+    };
+    return map;
+  }, {});
+}
