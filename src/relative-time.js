@@ -1,5 +1,145 @@
-import Globalize from "globalize";
-import ZonedDateTime from "zoned-date-time";
+function getOffsetIndex(zone, timestamp) {
+  const {untils} = zone;
+  for (let i = 0; i < untils.length; i++) {
+    const until = untils[i];
+    if (until === null || timestamp < until) {
+      return i;
+    }
+  }
+  return untils.length - 1;
+}
+
+function getOffsetMinutes(zone, timestamp) {
+  return zone.offsets[getOffsetIndex(zone, timestamp)];
+}
+
+function toLocal(zone, timestamp) {
+  const offsetMinutes = getOffsetMinutes(zone, timestamp);
+  return {
+    localTimestamp: timestamp - offsetMinutes * 60000,
+    offsetMinutes
+  };
+}
+
+function toUtc(zone, localTimestamp, hintOffsetMinutes) {
+  let offsetMinutes = typeof hintOffsetMinutes === "number" ? hintOffsetMinutes : getOffsetMinutes(zone, localTimestamp);
+  let utcTimestamp = localTimestamp + offsetMinutes * 60000;
+  let previous;
+
+  for (let i = 0; i < 8; i++) {
+    const nextOffset = getOffsetMinutes(zone, utcTimestamp);
+    const candidate = localTimestamp + nextOffset * 60000;
+
+    if (Math.abs(candidate - utcTimestamp) < 1) {
+      return candidate;
+    }
+
+    if (previous !== undefined && Math.abs(candidate - previous) < 1) {
+      return Math.max(candidate, utcTimestamp);
+    }
+
+    previous = utcTimestamp;
+    utcTimestamp = candidate;
+  }
+
+  return utcTimestamp;
+}
+
+class ZonedDateTime {
+  constructor(date, zone) {
+    this.zone = zone;
+    this.utcTimestamp = date.getTime();
+  }
+
+  clone() {
+    return new ZonedDateTime(new Date(this.utcTimestamp), this.zone);
+  }
+
+  valueOf() {
+    return this.getTime();
+  }
+
+  getTime() {
+    return this.utcTimestamp;
+  }
+
+  _getLocalDate() {
+    const {localTimestamp, offsetMinutes} = toLocal(this.zone, this.utcTimestamp);
+    return {
+      date: new Date(localTimestamp),
+      offsetMinutes
+    };
+  }
+
+  _setFromLocalDate(localDate, offsetMinutes) {
+    this.utcTimestamp = toUtc(this.zone, localDate.getTime(), offsetMinutes);
+    return this.utcTimestamp;
+  }
+
+  getFullYear() {
+    return this._getLocalDate().date.getUTCFullYear();
+  }
+
+  getMonth() {
+    return this._getLocalDate().date.getUTCMonth();
+  }
+
+  getDate() {
+    return this._getLocalDate().date.getUTCDate();
+  }
+
+  getHours() {
+    return this._getLocalDate().date.getUTCHours();
+  }
+
+  getMinutes() {
+    return this._getLocalDate().date.getUTCMinutes();
+  }
+
+  getSeconds() {
+    return this._getLocalDate().date.getUTCSeconds();
+  }
+
+  getMilliseconds() {
+    return this._getLocalDate().date.getUTCMilliseconds();
+  }
+
+  setMonth(value) {
+    const {date, offsetMinutes} = this._getLocalDate();
+    date.setUTCMonth(value);
+    return this._setFromLocalDate(date, offsetMinutes);
+  }
+
+  setDate(value) {
+    const {date, offsetMinutes} = this._getLocalDate();
+    date.setUTCDate(value);
+    return this._setFromLocalDate(date, offsetMinutes);
+  }
+
+  setHours(value) {
+    const {date, offsetMinutes} = this._getLocalDate();
+    date.setUTCHours(value);
+    return this._setFromLocalDate(date, offsetMinutes);
+  }
+
+  setMinutes(value) {
+    const {date, offsetMinutes} = this._getLocalDate();
+    date.setUTCMinutes(value);
+    return this._setFromLocalDate(date, offsetMinutes);
+  }
+
+  setSeconds(value) {
+    const {date, offsetMinutes} = this._getLocalDate();
+    date.setUTCSeconds(value);
+    return this._setFromLocalDate(date, offsetMinutes);
+  }
+
+  setMilliseconds(value) {
+    const {date, offsetMinutes} = this._getLocalDate();
+    date.setUTCMilliseconds(value);
+    return this._setFromLocalDate(date, offsetMinutes);
+  }
+}
 
 const second = 1e3;
 const minute = 6e4;
@@ -138,25 +278,45 @@ RelativeTime.threshold = {
   second: 59 // at least 59 seconds before using minute.
 };
 
-// TODO: Remove redundancy. The only reason this code is that ugly is to get
-// supported by globalize-compiler (which reads the static formatters).
-RelativeTime.initializeFormatters = function(globalize) {
-  if (globalize) {
-    return {
-      second: globalize.relativeTimeFormatter("second"),
-      minute: globalize.relativeTimeFormatter("minute"),
-      hour: globalize.relativeTimeFormatter("hour"),
-      day: globalize.relativeTimeFormatter("day"),
-      month: globalize.relativeTimeFormatter("month"),
-      year: globalize.relativeTimeFormatter("year")
-    };
+// TODO: Remove redundancy. The only reason this code is that ugly was to get
+// supported by globalize-compiler (which read the static formatters).
+RelativeTime.initializeFormatters = function(localesOrFormatter, options) {
+  let formatter;
+  let locales = localesOrFormatter;
+  let formatOptions = options;
+
+  if (localesOrFormatter && typeof localesOrFormatter.format === "function" &&
+      typeof localesOrFormatter.resolvedOptions === "function") {
+    formatter = localesOrFormatter;
+  } else {
+    if (localesOrFormatter && typeof localesOrFormatter === "object" && !Array.isArray(localesOrFormatter)) {
+      formatOptions = localesOrFormatter;
+      locales = undefined;
+    }
+
+    formatter = new Intl.RelativeTimeFormat(locales, Object.assign({
+      numeric: "auto"
+    }, formatOptions));
   }
+
   return {
-    second: Globalize.relativeTimeFormatter("second"),
-    minute: Globalize.relativeTimeFormatter("minute"),
-    hour: Globalize.relativeTimeFormatter("hour"),
-    day: Globalize.relativeTimeFormatter("day"),
-    month: Globalize.relativeTimeFormatter("month"),
-    year: Globalize.relativeTimeFormatter("year")
+    second(value) {
+      return formatter.format(value, "second");
+    },
+    minute(value) {
+      return formatter.format(value, "minute");
+    },
+    hour(value) {
+      return formatter.format(value, "hour");
+    },
+    day(value) {
+      return formatter.format(value, "day");
+    },
+    month(value) {
+      return formatter.format(value, "month");
+    },
+    year(value) {
+      return formatter.format(value, "year");
+    }
   };
 };

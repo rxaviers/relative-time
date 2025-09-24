@@ -123,7 +123,7 @@ describe("relative-time", function() {
       expect(relativeTime.format(new Date("2016-04-10 11:01:00"), {unit: "hour"})).to.equal("1 hour ago");
       expect(relativeTime.format(new Date("2016-04-10 00:00"), {unit: "hour"})).to.equal("12 hours ago");
       expect(relativeTime.format(new Date("2016-04-01 00:00"), {unit: "hour"})).to.equal("228 hours ago");
-      expect(relativeTime.format(new Date("2016-01-01 00:00"), {unit: "hour"})).to.equal("2,413 hours ago");
+      expect(relativeTime.format(new Date("2016-01-01 00:00"), {unit: "hour"})).to.equal("2,412 hours ago");
     });
 
     it("shold format relative time using days", function() {

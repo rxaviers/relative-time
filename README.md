@@ -2,16 +2,16 @@
 
 Formats JavaScript dates to relative time strings (e.g., "3 hours ago").
 
-Based on the [Unicode CLDR][] locale data. Powered by [globalizejs/globalize][].
+Based on the [Unicode CLDR][] locale data via the native [Intl.RelativeTimeFormat][] API.
 
 [Unicode CLDR]: http://cldr.unicode.org/
-[globalizejs/globalize]: http://globalizejs.com/
+[Intl.RelativeTimeFormat]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Intl/RelativeTimeFormat
 
 ## Why
 
 ### Leverages Unicode CLDR
 
-Leverages Unicode CLDR (via [Globalize](http://globalizejs.com)), the largest and most extensive standard repository of locale data available.
+Leverages Unicode CLDR (via [Intl.RelativeTimeFormat][], part of ECMA-402), the largest and most extensive standard repository of locale data available.
 
 It also means messages like `"today"`, `"yesterday"`, `"last month"` are available and properly localized in the various CLDR supported locales.
 
@@ -73,20 +73,18 @@ Note `relative-time` checks for the actual month change instead of counting on a
 
 ## Usage
 
-    npm install --save relative-time globalize cldr-data
+    npm install --save relative-time
 
 ```js
-var cldrData = require("cldr-data");
-var Globalize = require("globalize");
 var RelativeTime = require("relative-time").default;
-
-// Feed Globalize on CLDR.
-Globalize.load(cldrData.entireSupplemental(), cldrData.entireMainFor("en"));
-Globalize.locale("en");
 
 var relativeTime = new RelativeTime();
 console.log(relativeTime.format(new Date()));
 // > now
+
+var relativeTimeInPortuguese = new RelativeTime("pt");
+console.log(relativeTimeInPortuguese.format(new Date(Date.now() - 60 * 60 * 1000)));
+// > há 1 hora
 ```
 
 ### IANA time zone support

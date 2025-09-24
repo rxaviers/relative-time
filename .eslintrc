@@ -11,7 +11,9 @@
   "globals": {
     "expect": true
   },
-  "parser": "babel-eslint",
+  "parserOptions": {
+    "sourceType": "module"
+  },
   "rules": {
     "no-console": 0,
     "no-trailing-spaces": 1,
