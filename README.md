@@ -4,6 +4,9 @@ Formats JavaScript dates to relative time strings (e.g., "3 hours ago").
 
 Based on the [Unicode CLDR][] locale data via the native [Intl.RelativeTimeFormat][] API.
 
+The usage examples below assume [Temporal](https://tc39.es/proposal-temporal/) is available (either natively or via the
+[@js-temporal/polyfill](https://github.com/js-temporal/temporal-polyfill)).
+
 [Unicode CLDR]: http://cldr.unicode.org/
 [Intl.RelativeTimeFormat]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Intl/RelativeTimeFormat
 
@@ -79,11 +82,11 @@ Note `relative-time` checks for the actual month change instead of counting on a
 var RelativeTime = require("relative-time").default;
 
 var relativeTime = new RelativeTime();
-console.log(relativeTime.format(new Date()));
+console.log(relativeTime.format(Temporal.Now.instant()));
 // > now
 
 var relativeTimeInPortuguese = new RelativeTime("pt");
-console.log(relativeTimeInPortuguese.format(new Date(Date.now() - 60 * 60 * 1000)));
+console.log(relativeTimeInPortuguese.format(Temporal.Now.instant().subtract({hours: 1})));
 // > há 1 hora
 ```
 
@@ -99,7 +102,7 @@ identifier via the `timeZone` option. The example below assumes that "now" is
 | now  | 2016-04-10T12:00:00Z | 2016-04-10 05:00:00 GMT-7 (PDT) | 2016-04-10 14:00:00 GMT+2 (Central European Summer Time) |
 
 ```js
-var date = new Date("2016-04-10T00:00:00Z");
+var date = Temporal.Instant.from("2016-04-10T00:00:00Z");
 
 // Target: 2016-04-09 17:00:00 GMT-7 (PDT)
 // Now: 2016-04-10 05:00:00 GMT-7 (PDT)
@@ -122,7 +125,9 @@ relativeTime.format(date, {
 
 ### date
 
-A [JavaScript date object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date), i.e., `new Date()`.
+A [JavaScript date object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date), a
+[Temporal.Instant](https://tc39.es/proposal-temporal/docs/instant.html), or a
+[Temporal.ZonedDateTime](https://tc39.es/proposal-temporal/docs/zoneddatetime.html). Numeric epoch milliseconds are also accepted.
 
 ### options.unit (optional)
 

@@ -5,6 +5,38 @@ const Temporal = root.Temporal;
 
 const offsetFormatters = new Map();
 
+function isTemporalInstant(value) {
+  return Boolean(Temporal && typeof Temporal.Instant === "function" && value instanceof Temporal.Instant);
+}
+
+function isTemporalZonedDateTime(value) {
+  return Boolean(Temporal && typeof Temporal.ZonedDateTime === "function" && value instanceof Temporal.ZonedDateTime);
+}
+
+function toEpochMilliseconds(value) {
+  if (value instanceof Date) {
+    return value.getTime();
+  }
+
+  if (typeof value === "number") {
+    return value;
+  }
+
+  if (isTemporalInstant(value) || isTemporalZonedDateTime(value)) {
+    return Number(value.epochMilliseconds);
+  }
+
+  throw new TypeError("Unsupported date value; expected Date, number, or Temporal Instant/ZonedDateTime");
+}
+
+function toDate(value) {
+  if (value instanceof Date) {
+    return value;
+  }
+
+  return new Date(toEpochMilliseconds(value));
+}
+
 function getOffsetFormatter(timeZone) {
   let formatter = offsetFormatters.get(timeZone);
   if (!formatter) {
@@ -314,13 +346,13 @@ function createZonedDateTimeAdapter(date, timeZoneLike) {
   if (Temporal) {
     try {
       const timeZone = Temporal.TimeZone.from(timeZoneLike);
-      const instant = Temporal.Instant.fromEpochMilliseconds(date.getTime());
+      const instant = Temporal.Instant.fromEpochMilliseconds(toEpochMilliseconds(date));
       return new TemporalZonedDateTimeAdapter(instant.toZonedDateTimeISO(timeZone));
     } catch (error) {
       // Fall back to the legacy implementation below when Temporal cannot interpret the input.
     }
   }
-  return new LegacyZonedDateTime(date, timeZoneLike);
+  return new LegacyZonedDateTime(toDate(date), timeZoneLike);
 }
 
 const second = 1e3;
@@ -370,7 +402,7 @@ export default class RelativeTime {
     var formatters = this.formatters;
     var zoneLike = timeZone !== undefined && timeZone !== null ? timeZone : timeZoneData;
     var now = new Date();
-    var target = date;
+    var target = zoneLike ? date : toDate(date);
 
     if (zoneLike) {
       target = createZonedDateTimeAdapter(date, zoneLike);
