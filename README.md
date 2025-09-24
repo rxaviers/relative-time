@@ -87,15 +87,11 @@ console.log(relativeTimeInPortuguese.format(new Date(Date.now() - 60 * 60 * 1000
 // > há 1 hora
 ```
 
-### IANA time zone support
+### Time zone support
 
-In addition to the above, install `iana-tz-data`.
-
-```
-npm install --save iana-tz-data
-```
-
-The example below assume now is `2016-04-10T12:00:00Z`, i.e.,
+When you need to evaluate relative time in a different IANA time zone, pass its
+identifier via the `timeZone` option. The example below assumes that "now" is
+`2016-04-10T12:00:00Z`:
 
 |      | UTC                  | America/Los_Angeles             | Europe/Berlin                            |
 | ---- | -------------------- | ------------------------------- | ---------------------------------------- |
@@ -103,20 +99,19 @@ The example below assume now is `2016-04-10T12:00:00Z`, i.e.,
 | now  | 2016-04-10T12:00:00Z | 2016-04-10 05:00:00 GMT-7 (PDT) | 2016-04-10 14:00:00 GMT+2 (Central European Summer Time) |
 
 ```js
-var ianaTzData = require("iana-tz-data");
 var date = new Date("2016-04-10T00:00:00Z");
 
 // Target: 2016-04-09 17:00:00 GMT-7 (PDT)
 // Now: 2016-04-10 05:00:00 GMT-7 (PDT)
 relativeTime.format(date, {
-  timeZoneData: ianaTzData.zoneData.America.Los_Angeles
+  timeZone: "America/Los_Angeles"
 });
 // > "yesterday"
 
 // Target: 2016-04-10 14:00:00 GMT+2 (Central European Summer Time)
 // Now: 2016-04-10 14:00:00 GMT+2 (Central European Summer Time)
 relativeTime.format(date, {
-  timeZoneData: ianaTzData.zoneData.Europe.Berlin
+  timeZone: "Europe/Berlin"
 });
 // > "12 hours ago"
 ```
@@ -153,11 +148,13 @@ It automatically picks a unit based on the relative time scale. Basically, it lo
 - If `absDiffMinutes > 0 && absDiffSeconds > threshold.second`, return `"minutes"`.
 - Return `"second"`.
 
-### options.timeZoneData (optional)
+### options.timeZone (optional)
 
-The *zdumped* IANA timezone data (found on the [iana-tz-data](https://github.com/rxaviers/iana-tz-data) package) for the desired timeZoneId.
+An [IANA time zone identifier](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) or a `Temporal.TimeZone` instance to evaluate `date` relative to a specific location.
 
 If not provided, the user's environment time zone is used (default).
+
+> **Note:** The legacy `timeZoneData` alias that accepted `iana-tz-data` objects still works, but using a string identifier ensures native `Temporal` integration when available.
 
 ### Return
 

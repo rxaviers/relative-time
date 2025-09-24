@@ -1,5 +1,42 @@
-function getOffsetIndex(zone, timestamp) {
-  const {untils} = zone;
+const root = typeof global !== "undefined" ? global :
+  typeof window !== "undefined" ? window :
+  typeof self !== "undefined" ? self : {};
+const Temporal = root.Temporal;
+
+const offsetFormatters = new Map();
+
+function getOffsetFormatter(timeZone) {
+  let formatter = offsetFormatters.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      timeZoneName: "shortOffset",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23"
+    });
+    offsetFormatters.set(timeZone, formatter);
+  }
+  return formatter;
+}
+
+function parseOffsetMinutes(value) {
+  if (value === "GMT" || value === "UTC") {
+    return 0;
+  }
+  const match = value.match(/(?:GMT|UTC)([+-])(\d{1,2})(?::?(\d{2}))?/);
+  if (!match) {
+    return 0;
+  }
+  const sign = match[1] === "-" ? -1 : 1;
+  const hours = parseInt(match[2], 10);
+  const minutes = match[3] ? parseInt(match[3], 10) : 0;
+  return -sign * (hours * 60 + minutes);
+}
+
+function getOffsetIndex(zoneData, timestamp) {
+  const {untils} = zoneData;
   for (let i = 0; i < untils.length; i++) {
     const until = untils[i];
     if (until === null || timestamp < until) {
@@ -9,25 +46,46 @@ function getOffsetIndex(zone, timestamp) {
   return untils.length - 1;
 }
 
-function getOffsetMinutes(zone, timestamp) {
-  return zone.offsets[getOffsetIndex(zone, timestamp)];
+function getOffsetMinutesFromData(zoneData, timestamp) {
+  return zoneData.offsets[getOffsetIndex(zoneData, timestamp)];
 }
 
-function toLocal(zone, timestamp) {
-  const offsetMinutes = getOffsetMinutes(zone, timestamp);
+function getOffsetMinutesFromIntl(timeZone, timestamp) {
+  const parts = getOffsetFormatter(timeZone).formatToParts(new Date(timestamp));
+  const offsetPart = parts.find(function(part) {
+    return part.type === "timeZoneName";
+  });
+  if (!offsetPart) {
+    return 0;
+  }
+  return parseOffsetMinutes(offsetPart.value);
+}
+
+function getOffsetMinutes(timeZoneLike, timestamp) {
+  return typeof timeZoneLike === "string" ?
+    getOffsetMinutesFromIntl(timeZoneLike, timestamp) :
+    getOffsetMinutesFromData(timeZoneLike, timestamp);
+}
+
+function toLocal(timeZoneLike, timestamp) {
+  const offsetMinutes = getOffsetMinutes(timeZoneLike, timestamp);
   return {
     localTimestamp: timestamp - offsetMinutes * 60000,
     offsetMinutes
   };
 }
 
-function toUtc(zone, localTimestamp, hintOffsetMinutes) {
-  let offsetMinutes = typeof hintOffsetMinutes === "number" ? hintOffsetMinutes : getOffsetMinutes(zone, localTimestamp);
+function toUtc(timeZoneLike, localTimestamp, hintOffsetMinutes) {
+  if (typeof timeZoneLike === "string") {
+    return toUtcWithIntl(timeZoneLike, localTimestamp, hintOffsetMinutes);
+  }
+
+  let offsetMinutes = typeof hintOffsetMinutes === "number" ? hintOffsetMinutes : getOffsetMinutes(timeZoneLike, localTimestamp);
   let utcTimestamp = localTimestamp + offsetMinutes * 60000;
   let previous;
 
   for (let i = 0; i < 8; i++) {
-    const nextOffset = getOffsetMinutes(zone, utcTimestamp);
+    const nextOffset = getOffsetMinutes(timeZoneLike, utcTimestamp);
     const candidate = localTimestamp + nextOffset * 60000;
 
     if (Math.abs(candidate - utcTimestamp) < 1) {
@@ -45,14 +103,49 @@ function toUtc(zone, localTimestamp, hintOffsetMinutes) {
   return utcTimestamp;
 }
 
-class ZonedDateTime {
-  constructor(date, zone) {
-    this.zone = zone;
+function toUtcWithIntl(timeZone, localTimestamp, hintOffsetMinutes) {
+  const localDate = new Date(localTimestamp);
+  const baseUtc = Date.UTC(
+    localDate.getUTCFullYear(),
+    localDate.getUTCMonth(),
+    localDate.getUTCDate(),
+    localDate.getUTCHours(),
+    localDate.getUTCMinutes(),
+    localDate.getUTCSeconds(),
+    localDate.getUTCMilliseconds()
+  );
+
+  let offsetMinutes = typeof hintOffsetMinutes === "number" ? hintOffsetMinutes : getOffsetMinutesFromIntl(timeZone, baseUtc);
+  let utcTimestamp = baseUtc + offsetMinutes * 60000;
+  let previous;
+
+  for (let i = 0; i < 8; i++) {
+    const nextOffset = getOffsetMinutesFromIntl(timeZone, utcTimestamp);
+    const candidate = baseUtc + nextOffset * 60000;
+
+    if (Math.abs(candidate - utcTimestamp) < 1) {
+      return candidate;
+    }
+
+    if (previous !== undefined && Math.abs(candidate - previous) < 1) {
+      return Math.max(candidate, utcTimestamp);
+    }
+
+    previous = utcTimestamp;
+    utcTimestamp = candidate;
+  }
+
+  return utcTimestamp;
+}
+
+class LegacyZonedDateTime {
+  constructor(date, timeZoneLike) {
+    this.timeZoneLike = timeZoneLike;
     this.utcTimestamp = date.getTime();
   }
 
   clone() {
-    return new ZonedDateTime(new Date(this.utcTimestamp), this.zone);
+    return new LegacyZonedDateTime(new Date(this.utcTimestamp), this.timeZoneLike);
   }
 
   valueOf() {
@@ -64,7 +157,7 @@ class ZonedDateTime {
   }
 
   _getLocalDate() {
-    const {localTimestamp, offsetMinutes} = toLocal(this.zone, this.utcTimestamp);
+    const {localTimestamp, offsetMinutes} = toLocal(this.timeZoneLike, this.utcTimestamp);
     return {
       date: new Date(localTimestamp),
       offsetMinutes
@@ -72,7 +165,7 @@ class ZonedDateTime {
   }
 
   _setFromLocalDate(localDate, offsetMinutes) {
-    this.utcTimestamp = toUtc(this.zone, localDate.getTime(), offsetMinutes);
+    this.utcTimestamp = toUtc(this.timeZoneLike, localDate.getTime(), offsetMinutes);
     return this.utcTimestamp;
   }
 
@@ -141,6 +234,95 @@ class ZonedDateTime {
   }
 }
 
+class TemporalZonedDateTimeAdapter {
+  constructor(zonedDateTime) {
+    this.zonedDateTime = zonedDateTime;
+  }
+
+  clone() {
+    return new TemporalZonedDateTimeAdapter(this.zonedDateTime);
+  }
+
+  valueOf() {
+    return this.getTime();
+  }
+
+  getTime() {
+    return Number(this.zonedDateTime.epochMilliseconds);
+  }
+
+  getFullYear() {
+    return this.zonedDateTime.year;
+  }
+
+  getMonth() {
+    return this.zonedDateTime.month - 1;
+  }
+
+  getDate() {
+    return this.zonedDateTime.day;
+  }
+
+  getHours() {
+    return this.zonedDateTime.hour;
+  }
+
+  getMinutes() {
+    return this.zonedDateTime.minute;
+  }
+
+  getSeconds() {
+    return this.zonedDateTime.second;
+  }
+
+  getMilliseconds() {
+    return this.zonedDateTime.millisecond;
+  }
+
+  setMonth(value) {
+    this.zonedDateTime = this.zonedDateTime.with({month: value + 1});
+    return this.getTime();
+  }
+
+  setDate(value) {
+    this.zonedDateTime = this.zonedDateTime.with({day: value});
+    return this.getTime();
+  }
+
+  setHours(value) {
+    this.zonedDateTime = this.zonedDateTime.with({hour: value});
+    return this.getTime();
+  }
+
+  setMinutes(value) {
+    this.zonedDateTime = this.zonedDateTime.with({minute: value});
+    return this.getTime();
+  }
+
+  setSeconds(value) {
+    this.zonedDateTime = this.zonedDateTime.with({second: value});
+    return this.getTime();
+  }
+
+  setMilliseconds(value) {
+    this.zonedDateTime = this.zonedDateTime.with({millisecond: value, microsecond: 0, nanosecond: 0});
+    return this.getTime();
+  }
+}
+
+function createZonedDateTimeAdapter(date, timeZoneLike) {
+  if (Temporal) {
+    try {
+      const timeZone = Temporal.TimeZone.from(timeZoneLike);
+      const instant = Temporal.Instant.fromEpochMilliseconds(date.getTime());
+      return new TemporalZonedDateTimeAdapter(instant.toZonedDateTimeISO(timeZone));
+    } catch (error) {
+      // Fall back to the legacy implementation below when Temporal cannot interpret the input.
+    }
+  }
+  return new LegacyZonedDateTime(date, timeZoneLike);
+}
+
 const second = 1e3;
 const minute = 6e4;
 const hour = 36e5;
@@ -162,21 +344,21 @@ function defineGetter(obj, prop, get) {
 }
 
 function startOf(date, unit) {
-  date = date instanceof ZonedDateTime ? date.clone() : new Date(date.getTime());
+  const clone = typeof date.clone === "function" ? date.clone() : new Date(date.getTime());
   switch (unit) {
-    case "year": date.setMonth(0);
+    case "year": clone.setMonth(0);
     // falls through
-    case "month": date.setDate(1);
+    case "month": clone.setDate(1);
     // falls through
-    case "day": date.setHours(0);
+    case "day": clone.setHours(0);
     // falls through
-    case "hour": date.setMinutes(0);
+    case "hour": clone.setMinutes(0);
     // falls through
-    case "minute": date.setSeconds(0);
+    case "minute": clone.setSeconds(0);
     // falls through
-    case "second": date.setMilliseconds(0);
+    case "second": clone.setMilliseconds(0);
   }
-  return date;
+  return clone;
 }
 
 export default class RelativeTime {
@@ -184,36 +366,38 @@ export default class RelativeTime {
     this.formatters = RelativeTime.initializeFormatters(...arguments);
   }
 
-  format(date, {timeZoneData = null, unit = "best-fit"} = {}) {
+  format(date, {timeZone, timeZoneData = null, unit = "best-fit"} = {}) {
     var formatters = this.formatters;
+    var zoneLike = timeZone !== undefined && timeZone !== null ? timeZone : timeZoneData;
     var now = new Date();
+    var target = date;
 
-    if (timeZoneData) {
-      date = new ZonedDateTime(date, timeZoneData);
-      now = new ZonedDateTime(now, timeZoneData);
+    if (zoneLike) {
+      target = createZonedDateTimeAdapter(date, zoneLike);
+      now = createZonedDateTimeAdapter(now, zoneLike);
     }
 
     var diff = {
       _: {},
-      ms: date.getTime() - now.getTime(),
-      years: date.getFullYear() - now.getFullYear()
+      ms: target.getTime() - now.getTime(),
+      years: target.getFullYear() - now.getFullYear()
     };
     var round = Math[diff.ms > 0 ? "floor" : "ceil"];
 
     defineCachedGetter(diff, "months", function() {
-      return this.years * 12 + date.getMonth() - now.getMonth();
+      return this.years * 12 + target.getMonth() - now.getMonth();
     });
     defineCachedGetter(diff, "days", function() {
-      return round((startOf(date, "day") - startOf(now, "day")) / day);
+      return round((startOf(target, "day") - startOf(now, "day")) / day);
     });
     defineCachedGetter(diff, "hours", function() {
-      return round((startOf(date, "hour") - startOf(now, "hour")) / hour);
+      return round((startOf(target, "hour") - startOf(now, "hour")) / hour);
     });
     defineCachedGetter(diff, "minutes", function() {
-      return round((startOf(date, "minute") - startOf(now, "minute")) / minute);
+      return round((startOf(target, "minute") - startOf(now, "minute")) / minute);
     });
     defineCachedGetter(diff, "seconds", function() {
-      return round((startOf(date, "second") - startOf(now, "second")) / second);
+      return round((startOf(target, "second") - startOf(now, "second")) / second);
     });
 
     var absDiff = {
