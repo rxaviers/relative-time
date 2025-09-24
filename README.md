@@ -92,9 +92,9 @@ console.log(relativeTimeInPortuguese.format(Temporal.Now.instant().subtract({hou
 
 ### Time zone support
 
-When you need to evaluate relative time in a different IANA time zone, pass its
-identifier via the `timeZone` option. The example below assumes that "now" is
-`2016-04-10T12:00:00Z`:
+When you need to evaluate relative time in a different IANA time zone, convert
+your instant into a `Temporal.ZonedDateTime` before calling `format`. The
+example below assumes that "now" is `2016-04-10T12:00:00Z`:
 
 |      | UTC                  | America/Los_Angeles             | Europe/Berlin                            |
 | ---- | -------------------- | ------------------------------- | ---------------------------------------- |
@@ -106,17 +106,18 @@ var date = Temporal.Instant.from("2016-04-10T00:00:00Z");
 
 // Target: 2016-04-09 17:00:00 GMT-7 (PDT)
 // Now: 2016-04-10 05:00:00 GMT-7 (PDT)
-relativeTime.format(date, {
-  timeZone: "America/Los_Angeles"
-});
+var losAngelesDate = date.toZonedDateTimeISO("America/Los_Angeles");
+relativeTime.format(losAngelesDate);
 // > "yesterday"
 
 // Target: 2016-04-10 14:00:00 GMT+2 (Central European Summer Time)
 // Now: 2016-04-10 14:00:00 GMT+2 (Central European Summer Time)
-relativeTime.format(date, {
-  timeZone: "Europe/Berlin"
-});
+var berlinDate = date.toZonedDateTimeISO("Europe/Berlin");
+relativeTime.format(berlinDate);
 // > "12 hours ago"
+
+If native `Temporal` isn't available, pass the time zone identifier via the
+`timeZone` option or legacy `timeZoneData` alias instead.
 ```
 
 ## API
@@ -157,7 +158,8 @@ It automatically picks a unit based on the relative time scale. Basically, it lo
 
 An [IANA time zone identifier](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) or a `Temporal.TimeZone` instance to evaluate `date` relative to a specific location.
 
-If not provided, the user's environment time zone is used (default).
+If not provided, the user's environment time zone is used (default). Passing a
+`Temporal.ZonedDateTime` automatically reuses its associated time zone.
 
 > **Note:** The legacy `timeZoneData` alias that accepted `iana-tz-data` objects still works, but using a string identifier ensures native `Temporal` integration when available.
 

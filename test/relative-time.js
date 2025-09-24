@@ -183,6 +183,34 @@ describe("relative-time", function() {
       })).to.equal("3 months ago");
     });
 
+    it("should infer time zone from Temporal zoned date time inputs", function() {
+      function FakeTemporalZonedDateTime(epochMilliseconds, timeZoneId) {
+        this.epochMilliseconds = epochMilliseconds;
+        this.timeZone = {id: timeZoneId};
+      }
+
+      var originalTemporal = global.Temporal;
+      global.Temporal = {
+        ZonedDateTime: FakeTemporalZonedDateTime
+      };
+
+      try {
+        var epoch = Date.parse("2016-04-10T00:00:00Z");
+
+        // Target: 2016-04-09 17:00:00 GMT-7 (PDT)
+        // Now: 2016-04-10 05:00:00 GMT-7 (PDT)
+        var losAngelesDate = new FakeTemporalZonedDateTime(epoch, "America/Los_Angeles");
+        expect(relativeTime.format(losAngelesDate)).to.equal("yesterday");
+
+        // Target: 2016-04-10 14:00:00 GMT+2 (Central European Summer Time)
+        // Now: 2016-04-10 14:00:00 GMT+2 (Central European Summer Time)
+        var berlinDate = new FakeTemporalZonedDateTime(epoch, "Europe/Berlin");
+        expect(relativeTime.format(berlinDate)).to.equal("12 hours ago");
+      } finally {
+        global.Temporal = originalTemporal;
+      }
+    });
+
     it("should support daylight savings edge cases", function() {
       clock = sinon.useFakeTimers(new Date("2017-02-19T02:00:00.000Z").getTime());
 

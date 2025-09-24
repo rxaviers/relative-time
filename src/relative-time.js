@@ -1,15 +1,20 @@
 const root = typeof global !== "undefined" ? global :
   typeof window !== "undefined" ? window :
   typeof self !== "undefined" ? self : {};
-const Temporal = root.Temporal;
+
+function getTemporal() {
+  return root.Temporal;
+}
 
 const offsetFormatters = new Map();
 
 function isTemporalInstant(value) {
+  var Temporal = getTemporal();
   return Boolean(Temporal && typeof Temporal.Instant === "function" && value instanceof Temporal.Instant);
 }
 
 function isTemporalZonedDateTime(value) {
+  var Temporal = getTemporal();
   return Boolean(Temporal && typeof Temporal.ZonedDateTime === "function" && value instanceof Temporal.ZonedDateTime);
 }
 
@@ -343,16 +348,46 @@ class TemporalZonedDateTimeAdapter {
 }
 
 function createZonedDateTimeAdapter(date, timeZoneLike) {
+  var Temporal = getTemporal();
+
   if (Temporal) {
-    try {
-      const timeZone = Temporal.TimeZone.from(timeZoneLike);
-      const instant = Temporal.Instant.fromEpochMilliseconds(toEpochMilliseconds(date));
-      return new TemporalZonedDateTimeAdapter(instant.toZonedDateTimeISO(timeZone));
-    } catch (error) {
-      // Fall back to the legacy implementation below when Temporal cannot interpret the input.
+    if (isTemporalZonedDateTime(date)) {
+      var zonedTimeZone = date.timeZone;
+      if (timeZoneLike === undefined || timeZoneLike === null || timeZoneLike === zonedTimeZone) {
+        return new TemporalZonedDateTimeAdapter(date);
+      }
+    }
+
+    var hasTemporalInstant = Temporal.Instant && typeof Temporal.Instant.fromEpochMilliseconds === "function";
+
+    if (hasTemporalInstant && isTemporalTimeZoneLike(timeZoneLike)) {
+      try {
+        var instant = Temporal.Instant.fromEpochMilliseconds(toEpochMilliseconds(date));
+        return new TemporalZonedDateTimeAdapter(instant.toZonedDateTimeISO(timeZoneLike));
+      } catch (error) {
+        // Fall back to the legacy implementation below when Temporal cannot interpret the input.
+      }
     }
   }
+
   return new LegacyZonedDateTime(toDate(date), timeZoneLike);
+}
+
+function isTemporalTimeZoneLike(value) {
+  if (value === undefined || value === null) {
+    return false;
+  }
+
+  if (typeof value === "string") {
+    return true;
+  }
+
+  if (typeof value === "object" && "id" in value && typeof value.id === "string") {
+    return true;
+  }
+
+  var Temporal = getTemporal();
+  return Boolean(Temporal && typeof Temporal.TimeZone === "function" && value instanceof Temporal.TimeZone);
 }
 
 const second = 1e3;
@@ -401,11 +436,19 @@ export default class RelativeTime {
   format(date, {timeZone, timeZoneData = null, unit = "best-fit"} = {}) {
     var formatters = this.formatters;
     var zoneLike = timeZone !== undefined && timeZone !== null ? timeZone : timeZoneData;
-    var now = new Date();
-    var target = zoneLike ? date : toDate(date);
+    if ((zoneLike === undefined || zoneLike === null) && isTemporalZonedDateTime(date)) {
+      var inferredTimeZone = date.timeZone;
+      if (inferredTimeZone !== undefined && inferredTimeZone !== null) {
+        zoneLike = typeof inferredTimeZone === "object" && inferredTimeZone !== null && "id" in inferredTimeZone ?
+          inferredTimeZone.id :
+          inferredTimeZone;
+      }
+    }
 
-    if (zoneLike) {
-      target = createZonedDateTimeAdapter(date, zoneLike);
+    var now = new Date();
+    var target = zoneLike !== undefined && zoneLike !== null ? createZonedDateTimeAdapter(date, zoneLike) : toDate(date);
+
+    if (zoneLike !== undefined && zoneLike !== null) {
       now = createZonedDateTimeAdapter(now, zoneLike);
     }
 
