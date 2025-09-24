@@ -1,6 +1,6 @@
 # Relative Time
 
-Formats JavaScript dates to relative time strings (e.g., "3 hours ago").
+Formats Temporal dates to relative time strings (e.g., "3 hours ago").
 
 Based on the [Unicode CLDR][] locale data via the native [Intl.RelativeTimeFormat][] API.
 
@@ -102,12 +102,14 @@ assumes that "now" is `2016-04-10T12:00:00Z`:
 | now  | 2016-04-10T12:00:00Z | 2016-04-10 05:00:00 GMT-7 (PDT) | 2016-04-10 14:00:00 GMT+2 (Central European Summer Time) |
 
 ```js
+var now = Temporal.ZonedDateTime.from("2016-04-10T12:00:00Z[UTC]");
+
 // Target: 2016-04-09 17:00:00 GMT-7 (PDT)
 // Now: 2016-04-10 05:00:00 GMT-7 (PDT)
 var losAngelesDate = Temporal.ZonedDateTime.from(
   "2016-04-09T17:00:00-07:00[America/Los_Angeles]"
 );
-relativeTime.format(losAngelesDate);
+relativeTime.format(losAngelesDate, {now});
 // > "yesterday"
 
 // Target: 2016-04-10 14:00:00 GMT+2 (Central European Summer Time)
@@ -115,7 +117,7 @@ relativeTime.format(losAngelesDate);
 var berlinDate = Temporal.ZonedDateTime.from(
   "2016-04-10T14:00:00+02:00[Europe/Berlin]"
 );
-relativeTime.format(berlinDate);
+relativeTime.format(berlinDate, {now});
 // > "12 hours ago"
 ```
 
@@ -125,9 +127,8 @@ relativeTime.format(berlinDate);
 
 ### date
 
-A [JavaScript date object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date), a
-[Temporal.Instant](https://tc39.es/proposal-temporal/docs/instant.html), or a
-[Temporal.ZonedDateTime](https://tc39.es/proposal-temporal/docs/zoneddatetime.html). Numeric epoch milliseconds are also accepted.
+A [Temporal.Instant](https://tc39.es/proposal-temporal/docs/instant.html) or a
+[Temporal.ZonedDateTime](https://tc39.es/proposal-temporal/docs/zoneddatetime.html).
 
 ### options.unit (optional)
 
@@ -152,6 +153,12 @@ It automatically picks a unit based on the relative time scale. Basically, it lo
 - If `absDiffHours > 0 && absDiffMinutes > threshold.minute`, return `"hour"`.
 - If `absDiffMinutes > 0 && absDiffSeconds > threshold.second`, return `"minutes"`.
 - Return `"second"`.
+
+### options.now (optional)
+
+A [Temporal.ZonedDateTime](https://tc39.es/proposal-temporal/docs/zoneddatetime.html) representing the reference point used to
+compute the relative difference. When omitted, the current moment is retrieved with
+[`Temporal.Now`](https://tc39.es/proposal-temporal/docs/now.html).
 
 ### Return
 
