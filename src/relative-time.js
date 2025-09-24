@@ -433,9 +433,9 @@ export default class RelativeTime {
     this.formatters = RelativeTime.initializeFormatters(...arguments);
   }
 
-  format(date, {timeZone, timeZoneData = null, unit = "best-fit"} = {}) {
+  format(date, {timeZoneData = null, unit = "best-fit"} = {}) {
     var formatters = this.formatters;
-    var zoneLike = timeZone !== undefined && timeZone !== null ? timeZone : timeZoneData;
+    var zoneLike = timeZoneData;
     if ((zoneLike === undefined || zoneLike === null) && isTemporalZonedDateTime(date)) {
       var inferredTimeZone = date.timeZone;
       if (inferredTimeZone !== undefined && inferredTimeZone !== null) {

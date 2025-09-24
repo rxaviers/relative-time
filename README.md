@@ -153,15 +153,6 @@ It automatically picks a unit based on the relative time scale. Basically, it lo
 - If `absDiffMinutes > 0 && absDiffSeconds > threshold.second`, return `"minutes"`.
 - Return `"second"`.
 
-### options.timeZone (optional)
-
-An [IANA time zone identifier](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) or a `Temporal.TimeZone` instance to evaluate `date` relative to a specific location.
-
-If not provided, the user's environment time zone is used (default). Passing a
-`Temporal.ZonedDateTime` automatically reuses its associated time zone.
-
-> **Note:** The legacy `timeZoneData` alias that accepted `iana-tz-data` objects still works, but using a string identifier ensures native `Temporal` integration when available.
-
 ### Return
 
 Returns the formatted relative time string given `date` and `options`.
