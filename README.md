@@ -79,13 +79,13 @@ Note `relative-time` checks for the actual month change instead of counting on a
     npm install --save relative-time
 
 ```js
-var RelativeTime = require("relative-time").default;
+const RelativeTime = require("relative-time").default;
 
-var relativeTime = new RelativeTime();
+const relativeTime = new RelativeTime();
 console.log(relativeTime.format(Temporal.Now.instant()));
 // > now
 
-var relativeTimeInPortuguese = new RelativeTime("pt");
+const relativeTimeInPortuguese = new RelativeTime("pt");
 console.log(relativeTimeInPortuguese.format(Temporal.Now.instant().subtract({hours: 1})));
 // > há 1 hora
 ```
@@ -102,11 +102,11 @@ assumes that "now" is `2016-04-10T12:00:00Z`:
 | now  | 2016-04-10T12:00:00Z | 2016-04-10 05:00:00 GMT-7 (PDT) | 2016-04-10 14:00:00 GMT+2 (Central European Summer Time) |
 
 ```js
-var now = Temporal.ZonedDateTime.from("2016-04-10T12:00:00Z[UTC]");
+const now = Temporal.ZonedDateTime.from("2016-04-10T12:00:00Z[UTC]");
 
 // Target: 2016-04-09 17:00:00 GMT-7 (PDT)
 // Now: 2016-04-10 05:00:00 GMT-7 (PDT)
-var losAngelesDate = Temporal.ZonedDateTime.from(
+const losAngelesDate = Temporal.ZonedDateTime.from(
   "2016-04-09T17:00:00-07:00[America/Los_Angeles]"
 );
 relativeTime.format(losAngelesDate, {now});
@@ -114,14 +114,14 @@ relativeTime.format(losAngelesDate, {now});
 
 // Target: 2016-04-10 14:00:00 GMT+2 (Central European Summer Time)
 // Now: 2016-04-10 14:00:00 GMT+2 (Central European Summer Time)
-var berlinDate = Temporal.ZonedDateTime.from(
+const berlinDate = Temporal.ZonedDateTime.from(
   "2016-04-10T14:00:00+02:00[Europe/Berlin]"
 );
 relativeTime.format(berlinDate, {now});
 // > "12 hours ago"
 
 // Comparing instants requires a reference time zone.
-var eventInstant = Temporal.Instant.from("2016-04-10T11:59:01Z");
+const eventInstant = Temporal.Instant.from("2016-04-10T11:59:01Z");
 relativeTime.format(eventInstant, {now: Temporal.Now.instant(), timeZone: "UTC"});
 // > "59 seconds ago"
 ```

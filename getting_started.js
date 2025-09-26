@@ -1,5 +1,5 @@
-var RelativeTime = require("./src/relative-time").default;
+const RelativeTime = require("./src/relative-time").default;
 
-var relativeTime = new RelativeTime();
-var now = Temporal.Now.instant();
+const relativeTime = new RelativeTime();
+const now = Temporal.Now.instant();
 console.log(relativeTime.format(now));

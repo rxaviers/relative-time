@@ -6,7 +6,7 @@ const hour = 36e5;
 const day = 864e5;
 
 function getOffsetFormatter(timeZone) {
-  var formatter = offsetFormatters.get(timeZone);
+  let formatter = offsetFormatters.get(timeZone);
   if (!formatter) {
     formatter = new Intl.DateTimeFormat("en-CA", {
       timeZone,
@@ -25,19 +25,19 @@ function parseOffsetMinutes(value) {
   if (value === "GMT" || value === "UTC") {
     return 0;
   }
-  var match = value.match(/(?:GMT|UTC)([+-])(\d{1,2})(?::?(\d{2}))?/);
+  const match = value.match(/(?:GMT|UTC)([+-])(\d{1,2})(?::?(\d{2}))?/);
   if (!match) {
     return 0;
   }
-  var sign = match[1] === "-" ? -1 : 1;
-  var hours = parseInt(match[2], 10);
-  var minutes = match[3] ? parseInt(match[3], 10) : 0;
+  const sign = match[1] === "-" ? -1 : 1;
+  const hours = parseInt(match[2], 10);
+  const minutes = match[3] ? parseInt(match[3], 10) : 0;
   return -sign * (hours * 60 + minutes);
 }
 
 function getOffsetMinutesFromIntl(timeZone, timestamp) {
-  var parts = getOffsetFormatter(timeZone).formatToParts(new Date(timestamp));
-  var offsetPart = parts.find(function(part) {
+  const parts = getOffsetFormatter(timeZone).formatToParts(new Date(timestamp));
+  const offsetPart = parts.find(function(part) {
     return part.type === "timeZoneName";
   });
   if (!offsetPart) {
@@ -47,7 +47,7 @@ function getOffsetMinutesFromIntl(timeZone, timestamp) {
 }
 
 function getDateTimeFormatter(timeZone) {
-  var formatter = dateTimeFormatters.get(timeZone);
+  let formatter = dateTimeFormatters.get(timeZone);
   if (!formatter) {
     formatter = new Intl.DateTimeFormat("en-CA", {
       timeZone,
@@ -65,14 +65,14 @@ function getDateTimeFormatter(timeZone) {
 }
 
 function getLocalFields(epochMilliseconds, timeZone) {
-  var parts = getDateTimeFormatter(timeZone).formatToParts(new Date(epochMilliseconds));
-  var values = {};
+  const parts = getDateTimeFormatter(timeZone).formatToParts(new Date(epochMilliseconds));
+  const values = {};
   parts.forEach(function(part) {
     if (part.type !== "literal") {
       values[part.type] = part.value;
     }
   });
-  var millisecond = ((epochMilliseconds % 1000) + 1000) % 1000;
+  const millisecond = ((epochMilliseconds % 1000) + 1000) % 1000;
   return {
     year: parseInt(values.year, 10),
     month: parseInt(values.month, 10),
@@ -97,7 +97,7 @@ function createIsoLocalTimestamp(fields) {
 }
 
 function toLocal(timeZone, timestamp) {
-  var offsetMinutes = getOffsetMinutesFromIntl(timeZone, timestamp);
+  const offsetMinutes = getOffsetMinutesFromIntl(timeZone, timestamp);
   return {
     localTimestamp: timestamp - offsetMinutes * 60000,
     offsetMinutes
@@ -109,8 +109,8 @@ function toUtc(timeZone, localTimestamp, hintOffsetMinutes) {
 }
 
 function toUtcWithIntl(timeZone, localTimestamp, hintOffsetMinutes) {
-  var localDate = new Date(localTimestamp);
-  var baseUtc = Date.UTC(
+  const localDate = new Date(localTimestamp);
+  const baseUtc = Date.UTC(
     localDate.getUTCFullYear(),
     localDate.getUTCMonth(),
     localDate.getUTCDate(),
@@ -120,13 +120,13 @@ function toUtcWithIntl(timeZone, localTimestamp, hintOffsetMinutes) {
     localDate.getUTCMilliseconds()
   );
 
-  var offsetMinutes = typeof hintOffsetMinutes === "number" ? hintOffsetMinutes : getOffsetMinutesFromIntl(timeZone, baseUtc);
-  var utcTimestamp = baseUtc + offsetMinutes * 60000;
-  var previous;
+  const offsetMinutes = typeof hintOffsetMinutes === "number" ? hintOffsetMinutes : getOffsetMinutesFromIntl(timeZone, baseUtc);
+  let utcTimestamp = baseUtc + offsetMinutes * 60000;
+  let previous;
 
-  for (var i = 0; i < 8; i++) {
-    var nextOffset = getOffsetMinutesFromIntl(timeZone, utcTimestamp);
-    var candidate = baseUtc + nextOffset * 60000;
+  for (let i = 0; i < 8; i++) {
+    const nextOffset = getOffsetMinutesFromIntl(timeZone, utcTimestamp);
+    const candidate = baseUtc + nextOffset * 60000;
 
     if (Math.abs(candidate - utcTimestamp) < 1) {
       return candidate;
@@ -157,11 +157,11 @@ export function normalizeTimeZone(zoneLike) {
 }
 
 function computeDiff(start, end) {
-  var diff = {
+  const diff = {
     ms: end.getTime() - start.getTime(),
     years: end.year - start.year
   };
-  var round = diff.ms > 0 ? Math.floor : Math.ceil;
+  const round = diff.ms > 0 ? Math.floor : Math.ceil;
 
   diff.months = diff.years * 12 + end.month - start.month;
   diff.days = round((startOf(end, "day").getTime() - startOf(start, "day").getTime()) / day);
@@ -172,7 +172,7 @@ function computeDiff(start, end) {
 }
 
 function startOf(date, unit) {
-  var clone = date.clone();
+  const clone = date.clone();
   switch (unit) {
     case "year": clone.setMonth(0);
     /* falls through */
@@ -196,15 +196,15 @@ export default class FakeTemporalZonedDateTime {
   }
 
   static from(isoString) {
-    var match = isoString.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,3}))?((?:[+-]\d{2}:\d{2})|Z)\[(.+)\]$/);
+    const match = isoString.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,3}))?((?:[+-]\d{2}:\d{2})|Z)\[(.+)\]$/);
     if (!match) {
       throw new Error("Unsupported ISO string: " + isoString);
     }
-    var dateTime = match[1];
-    var fractional = match[2] ? match[2] : "000";
-    var offset = match[3] === "Z" ? "+00:00" : match[3];
-    var timeZone = match[4];
-    var epochMilliseconds = Date.parse(dateTime + "." + fractional.padEnd(3, "0") + offset);
+    const dateTime = match[1];
+    const fractional = match[2] ? match[2] : "000";
+    const offset = match[3] === "Z" ? "+00:00" : match[3];
+    const timeZone = match[4];
+    const epochMilliseconds = Date.parse(dateTime + "." + fractional.padEnd(3, "0") + offset);
     return new FakeTemporalZonedDateTime(epochMilliseconds, timeZone);
   }
 
@@ -225,8 +225,8 @@ export default class FakeTemporalZonedDateTime {
   }
 
   with(changes) {
-    var fields = getLocalFields(this.epochMilliseconds, this.timeZone);
-    var next = {
+    const fields = getLocalFields(this.epochMilliseconds, this.timeZone);
+    const next = {
       year: fields.year,
       month: fields.month,
       day: fields.day,
@@ -258,9 +258,9 @@ export default class FakeTemporalZonedDateTime {
       next.millisecond = changes.millisecond;
     }
 
-    var hintOffset = getOffsetMinutesFromIntl(this.timeZone, this.epochMilliseconds);
-    var localTimestamp = createIsoLocalTimestamp(next);
-    var epochMilliseconds = toUtc(this.timeZone, localTimestamp, hintOffset);
+    const hintOffset = getOffsetMinutesFromIntl(this.timeZone, this.epochMilliseconds);
+    const localTimestamp = createIsoLocalTimestamp(next);
+    const epochMilliseconds = toUtc(this.timeZone, localTimestamp, hintOffset);
     return new FakeTemporalZonedDateTime(epochMilliseconds, this.timeZone);
   }
 
@@ -293,7 +293,7 @@ export default class FakeTemporalZonedDateTime {
   }
 
   _getLocalDate() {
-    var result = toLocal(this.timeZone, this.epochMilliseconds);
+    const result = toLocal(this.timeZone, this.epochMilliseconds);
     return {
       date: new Date(result.localTimestamp),
       offsetMinutes: result.offsetMinutes
@@ -306,43 +306,43 @@ export default class FakeTemporalZonedDateTime {
   }
 
   setMonth(value) {
-    var result = this._getLocalDate();
+    const result = this._getLocalDate();
     result.date.setUTCMonth(value);
     return this._setFromLocalDate(result.date, result.offsetMinutes);
   }
 
   setDate(value) {
-    var result = this._getLocalDate();
+    const result = this._getLocalDate();
     result.date.setUTCDate(value);
     return this._setFromLocalDate(result.date, result.offsetMinutes);
   }
 
   setHours(value) {
-    var result = this._getLocalDate();
+    const result = this._getLocalDate();
     result.date.setUTCHours(value);
     return this._setFromLocalDate(result.date, result.offsetMinutes);
   }
 
   setMinutes(value) {
-    var result = this._getLocalDate();
+    const result = this._getLocalDate();
     result.date.setUTCMinutes(value);
     return this._setFromLocalDate(result.date, result.offsetMinutes);
   }
 
   setSeconds(value) {
-    var result = this._getLocalDate();
+    const result = this._getLocalDate();
     result.date.setUTCSeconds(value);
     return this._setFromLocalDate(result.date, result.offsetMinutes);
   }
 
   setMilliseconds(value) {
-    var result = this._getLocalDate();
+    const result = this._getLocalDate();
     result.date.setUTCMilliseconds(value);
     return this._setFromLocalDate(result.date, result.offsetMinutes);
   }
 
   until(other) {
-    var diff = computeDiff(this, other);
+    const diff = computeDiff(this, other);
     return {
       years: diff.years,
       months: diff.months,

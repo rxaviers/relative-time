@@ -3,7 +3,7 @@ const root = typeof global !== "undefined" ? global :
   typeof self !== "undefined" ? self : {};
 
 function getTemporal() {
-  var Temporal = root.Temporal;
+  const Temporal = root.Temporal;
   if (!Temporal) {
     throw new TypeError("Temporal is required to use relative-time");
   }
@@ -57,7 +57,7 @@ function resolveNow(now, Temporal, zone) {
 }
 
 function differenceInUnit(now, target, unit) {
-  var duration = now.until(target, {
+  const duration = now.until(target, {
     largestUnit: unit,
     smallestUnit: unit,
     roundingMode: "trunc"
@@ -71,19 +71,19 @@ export default class RelativeTime {
   }
 
   format(date, {unit = "best-fit", now, timeZone} = {}) {
-    var Temporal = getTemporal();
-    var target;
-    var resolvedNow;
-    var normalizedZone = toTimeZoneIdentifier(timeZone);
+    const Temporal = getTemporal();
+    let target;
+    let resolvedNow;
+    let normalizedZone = toTimeZoneIdentifier(timeZone);
 
     if (isTemporalZonedDateTime(date, Temporal)) {
-      var originalZone = toTimeZoneIdentifier(date.timeZone);
-      var targetZone = normalizedZone || originalZone;
+      const originalZone = toTimeZoneIdentifier(date.timeZone);
+      const targetZone = normalizedZone || originalZone;
       target = originalZone === targetZone ? date : date.withTimeZone(targetZone);
       normalizedZone = targetZone;
       resolvedNow = resolveNow(now, Temporal, normalizedZone);
     } else if (isTemporalInstant(date, Temporal)) {
-      var instantZone = normalizedZone;
+      let instantZone = normalizedZone;
 
       if (!instantZone) {
         if (isTemporalZonedDateTime(now, Temporal)) {
@@ -114,12 +114,12 @@ export default class RelativeTime {
       target = target.withTimeZone(normalizedZone);
     }
 
-    var diff = {};
+    const diff = {};
     ["year", "month", "day", "hour", "minute", "second"].forEach(function(currentUnit) {
       diff[currentUnit] = differenceInUnit(resolvedNow, target, currentUnit);
     });
 
-    var absDiff = {};
+    const absDiff = {};
     Object.keys(diff).forEach(function(currentUnit) {
       absDiff[currentUnit] = Math.abs(diff[currentUnit]);
     });
@@ -133,7 +133,7 @@ export default class RelativeTime {
 }
 
 RelativeTime.bestFit = function(absDiff) {
-  var threshold = this.threshold;
+  const threshold = this.threshold;
   switch (true) {
     case absDiff.year > 0 && absDiff.month > threshold.month: return "year";
     case absDiff.month > 0 && absDiff.day > threshold.day: return "month";
@@ -153,8 +153,8 @@ RelativeTime.threshold = {
 };
 
 RelativeTime.initializeFormatters = function(localesOrFormatter, options) {
-  var locales = localesOrFormatter;
-  var formatOptions = options;
+  let locales = localesOrFormatter;
+  let formatOptions = options;
 
   if (localesOrFormatter && typeof localesOrFormatter.format === "function" &&
       typeof localesOrFormatter.resolvedOptions === "function") {
