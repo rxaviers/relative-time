@@ -195,6 +195,10 @@ export default class FakeTemporalZonedDateTime {
     this.timeZone = normalizeTimeZone(timeZone);
   }
 
+  get timeZoneId() {
+    return this.timeZone;
+  }
+
   static from(isoString) {
     const match = isoString.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,3}))?((?:[+-]\d{2}:\d{2})|Z)\[(.+)\]$/);
     if (!match) {

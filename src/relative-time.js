@@ -38,7 +38,7 @@ export default class RelativeTime {
     let resolvedNow;
 
     if (isTemporalZonedDateTime(date, Temporal)) {
-      const targetZone = date.timeZone;
+      const targetZone = date.timeZoneId;
 
       if (now === undefined || now === null) {
         resolvedNow = Temporal.Now.zonedDateTimeISO(targetZone);
@@ -62,7 +62,7 @@ export default class RelativeTime {
         throw new TypeError("Unsupported now value; expected Temporal.Instant or Temporal.ZonedDateTime");
       }
 
-      const comparisonZone = resolvedNow.timeZone;
+      const comparisonZone = resolvedNow.timeZoneId;
       target = date.toZonedDateTimeISO(comparisonZone);
       resolvedNow = resolvedNow.withTimeZone(comparisonZone);
     } else {
