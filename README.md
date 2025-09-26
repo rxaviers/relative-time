@@ -140,9 +140,10 @@ const berlinDate = Temporal.ZonedDateTime.from(
 relativeTime.format(berlinDate, {now});
 // > "12 hours ago"
 
-// Comparing instants requires a reference time zone.
+// Comparing instants requires a reference time zone provided by a ZonedDateTime.
 const eventInstant = Temporal.Instant.from("2016-04-10T11:59:01Z");
-relativeTime.format(eventInstant, {now: Temporal.Now.instant(), timeZone: "UTC"});
+const comparisonNow = Temporal.Now.zonedDateTimeISO("UTC");
+relativeTime.format(eventInstant, {now: comparisonNow});
 // > "59 seconds ago"
 ```
 
@@ -184,16 +185,9 @@ It automatically picks a unit based on the relative time scale. Basically, it lo
 A [Temporal.ZonedDateTime](https://tc39.es/proposal-temporal/docs/zoneddatetime.html) or
 [Temporal.Instant](https://tc39.es/proposal-temporal/docs/instant.html) representing the
 reference point used to compute the relative difference. When omitted, the current moment is
-retrieved with [`Temporal.Now`](https://tc39.es/proposal-temporal/docs/now.html). Instant values
-require a reference time zone, either inferred from the target date or provided via
-`options.timeZone`.
-
-### options.timeZone (optional)
-
-An IANA time zone identifier (string) or [Temporal.TimeZone](https://tc39.es/proposal-temporal/docs/timezone.html)
-instance used to interpret `Temporal.Instant` inputs. Supply this option when both `date` and
-`options.now` are instants or when you want to override the target time zone during the
-comparison.
+retrieved with [`Temporal.Now`](https://tc39.es/proposal-temporal/docs/now.html). If both `date`
+and `options.now` are instants, the comparison fails because there's no time zone context—pass a
+`Temporal.ZonedDateTime` as `options.now` to establish one.
 
 ### Return
 

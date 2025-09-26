@@ -216,18 +216,12 @@ describe("relative-time", function() {
       expect(relativeTime.format(zoned("2016-04-10 11:59:01"), {now: instantNow})).to.equal("59 seconds ago");
     });
 
-    it("should accept options.timeZone for Temporal.Instant comparisons", function() {
-      const target = global.Temporal.Instant.from("2016-04-10T11:59:01Z");
-      const instantNow = global.Temporal.Instant.from("2016-04-10T12:00:00Z");
-      expect(relativeTime.format(target, {now: instantNow, timeZone: "UTC"})).to.equal("59 seconds ago");
-    });
-
     it("should require a time zone when both values are Temporal.Instant", function() {
       const target = global.Temporal.Instant.from("2016-04-10T11:59:01Z");
       const instantNow = global.Temporal.Instant.from("2016-04-10T12:00:00Z");
       expect(function() {
         relativeTime.format(target, {now: instantNow});
-      }).to.throw(TypeError, /timeZone option or ZonedDateTime/);
+      }).to.throw(TypeError, /Temporal\.ZonedDateTime `now` value/);
     });
 
     it("should use Temporal.Now when now is omitted", function() {
