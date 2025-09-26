@@ -1,8 +1,12 @@
 # Relative Time
 
-Formats Temporal dates to relative time strings (e.g., "3 hours ago").
+Formats Temporal dates to relative time strings (e.g., "3 hours ago") using the
+same standards that ship in modern JavaScript engines.
 
-Based on the [Unicode CLDR][] locale data via the native [Intl.RelativeTimeFormat][] API.
+Built entirely on [Temporal](https://tc39.es/proposal-temporal/) for duration
+calculations and the native [Intl.RelativeTimeFormat][] API (ECMA-402) for
+localization, so you get spec-compliant results without extra runtime
+dependencies.
 
 The usage examples below assume [Temporal](https://tc39.es/proposal-temporal/) is available (either natively or via the
 [@js-temporal/polyfill](https://github.com/js-temporal/temporal-polyfill)).
@@ -12,13 +16,23 @@ The usage examples below assume [Temporal](https://tc39.es/proposal-temporal/) i
 
 ## Why
 
-### Leverages Unicode CLDR
+### Built on native web standards
 
-Leverages Unicode CLDR (via [Intl.RelativeTimeFormat][], part of ECMA-402), the largest and most extensive standard repository of locale data available.
+Temporal handles the date math while [Intl.RelativeTimeFormat][] provides the
+localized strings, so the library always uses the same Unicode CLDR data that
+ships with the runtime. There are no custom heuristics, shimmed tokens, or
+vendor-specific formatting rules to maintain.
 
-It also means messages like `"today"`, `"yesterday"`, `"last month"` are available and properly localized in the various CLDR supported locales.
+Standard APIs also mean the examples in this README run anywhere Temporal is
+available (including via the official polyfill) and benefit from future engine
+improvements automatically.
 
-### IANA time zone support
+### Understands IANA time zones
+
+Temporal.ZonedDateTime inputs preserve the offset and daylight-saving rules for
+each region, so the formatter stays accurate even when comparing the same instant
+across different cities. The diagram below illustrates how the same moment reads
+in Los Angeles and New York.
 
 ```
 hr.  | | | | | | | | | | | | | | | | | | | | | | | | | |
@@ -34,7 +48,13 @@ The relative time between `x` and now `N` is:
 | America/New_York    | `"yesterday"`        |
 | America/Los_Angeles | `"21 hours ago"`     |
 
-### What you get is correct
+### Better results than other libraries
+
+Other open-source relative time utilities rely on hand-tuned thresholds that can
+misreport day or month boundaries. Because this project delegates that logic to
+Temporal and CLDR data, it keeps human language aligned with calendar reality.
+The comparisons below highlight real cases where Moment.js and similar libraries
+fall short.
 
 #### day
 
