@@ -19,23 +19,41 @@ function isTemporalZonedDateTime(value, Temporal) {
 }
 
 function toTimeZoneIdentifier(zone) {
+  if (zone === undefined || zone === null) {
+    return zone;
+  }
   if (typeof zone === "string") {
     return zone;
   }
   if (zone && typeof zone.id === "string") {
     return zone.id;
   }
-  return zone;
+  throw new TypeError("Unsupported time zone; expected a string or Temporal.TimeZone");
 }
 
-function ensureZonedDateTime(value, Temporal) {
-  if (isTemporalZonedDateTime(value, Temporal)) {
-    return value;
+function resolveNow(now, Temporal, zone) {
+  if (now === undefined || now === null) {
+    if (zone !== undefined) {
+      return Temporal.Now.zonedDateTimeISO(zone);
+    }
+    return Temporal.Now.zonedDateTimeISO();
   }
-  if (isTemporalInstant(value, Temporal)) {
-    throw new TypeError("Temporal.Instant inputs require a reference time zone");
+
+  if (isTemporalZonedDateTime(now, Temporal)) {
+    if (zone !== undefined) {
+      return now.withTimeZone(zone);
+    }
+    return now;
   }
-  throw new TypeError("Unsupported date value; expected Temporal.Instant or Temporal.ZonedDateTime");
+
+  if (isTemporalInstant(now, Temporal)) {
+    if (zone === undefined) {
+      throw new TypeError("Temporal.Instant `now` values require a timeZone option or ZonedDateTime input");
+    }
+    return now.toZonedDateTimeISO(zone);
+  }
+
+  throw new TypeError("Unsupported now value; expected Temporal.Instant or Temporal.ZonedDateTime");
 }
 
 function differenceInUnit(now, target, unit) {
@@ -52,29 +70,48 @@ export default class RelativeTime {
     this.formatters = RelativeTime.initializeFormatters(...arguments);
   }
 
-  format(date, {unit = "best-fit", now} = {}) {
+  format(date, {unit = "best-fit", now, timeZone} = {}) {
     var Temporal = getTemporal();
-    var resolvedNow = now;
-    if (resolvedNow !== undefined && resolvedNow !== null) {
-      resolvedNow = ensureZonedDateTime(resolvedNow, Temporal);
-    }
-
     var target;
+    var resolvedNow;
+    var normalizedZone = toTimeZoneIdentifier(timeZone);
+
     if (isTemporalZonedDateTime(date, Temporal)) {
-      target = date;
-      var zoneLike = toTimeZoneIdentifier(target.timeZone);
-      if (resolvedNow) {
-        resolvedNow = resolvedNow.withTimeZone(zoneLike);
-      } else {
-        resolvedNow = Temporal.Now.zonedDateTimeISO(zoneLike);
-      }
+      var originalZone = toTimeZoneIdentifier(date.timeZone);
+      var targetZone = normalizedZone || originalZone;
+      target = originalZone === targetZone ? date : date.withTimeZone(targetZone);
+      normalizedZone = targetZone;
+      resolvedNow = resolveNow(now, Temporal, normalizedZone);
     } else if (isTemporalInstant(date, Temporal)) {
-      if (!resolvedNow) {
-        resolvedNow = Temporal.Now.zonedDateTimeISO();
+      var instantZone = normalizedZone;
+
+      if (!instantZone) {
+        if (isTemporalZonedDateTime(now, Temporal)) {
+          instantZone = toTimeZoneIdentifier(now.timeZone);
+        } else if (now === undefined || now === null) {
+          resolvedNow = Temporal.Now.zonedDateTimeISO();
+          instantZone = toTimeZoneIdentifier(resolvedNow.timeZone);
+        } else {
+          throw new TypeError("Temporal.Instant inputs require a timeZone option or ZonedDateTime `now` value");
+        }
       }
-      target = date.toZonedDateTimeISO(resolvedNow.timeZone);
+
+      if (!resolvedNow) {
+        resolvedNow = resolveNow(now, Temporal, instantZone);
+      } else {
+        resolvedNow = resolvedNow.withTimeZone(instantZone);
+      }
+
+      target = date.toZonedDateTimeISO(instantZone);
+      normalizedZone = instantZone;
     } else {
       throw new TypeError("Unsupported date value; expected Temporal.Instant or Temporal.ZonedDateTime");
+    }
+
+    if (!normalizedZone) {
+      normalizedZone = toTimeZoneIdentifier(target.timeZone);
+      resolvedNow = resolvedNow.withTimeZone(normalizedZone);
+      target = target.withTimeZone(normalizedZone);
     }
 
     var diff = {};
