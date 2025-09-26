@@ -35,12 +35,18 @@ across different cities. The diagram below illustrates how the same moment reads
 in Los Angeles and New York.
 
 ```
-hr.  | | | | | | | | | | | | | | | | | | | | | | | | | |
-day  | x .  .              N |   .  .                |
-PDT  .   .  Mar 21 PDT       .   .  Mar 23, 00:00 PDT
-EDT  .   Mar 21 EDT          .   Mar 22, 00:00 EDT
-UTC  Mar 21                  Mar 22, 00:00
+                         x                         N
+                         │                         │
+UTC  ────────────────────┼─ Mar 21 16:00 ──────────┼─ Mar 22 00:00
+                         │                         │
+EDT  ────────────────────┼─ Mar 21 12:00 ── midnight ┊─ Mar 21 20:00
+                         │                         │
+PDT  ────── midnight ┊───x─ Mar 21 09:00 ──────────┼─ Mar 21 17:00 ──┊ midnight
 ```
+Solid vertical lines mark the same instants (`x` and `N`) across each zone, while the
+stippling (`┊`) shows where local midnight falls. New York crosses midnight between
+`x` and `N`, so the event reads as “yesterday”, but Los Angeles does not, yielding
+“21 hours ago”.
 The relative time between `x` and now `N` is:
 
 | time zone           | relative-time result |
