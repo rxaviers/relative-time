@@ -101,7 +101,7 @@ Note `relative-time` checks for the actual month change instead of counting on a
     npm install --save relative-time
 
 ```js
-const RelativeTime = require("relative-time").default;
+import RelativeTime from "relative-time";
 
 const relativeTime = new RelativeTime();
 console.log(relativeTime.format(Temporal.Now.instant()));
