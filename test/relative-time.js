@@ -1,37 +1,9 @@
 import RelativeTime from "../src/relative-time";
-import FakeTemporalZonedDateTime, { normalizeTimeZone } from "./fake-temporal-zoned-date-time";
+import * as TemporalPolyfillModule from "temporal-luxon";
 
-class FakeTemporalInstant {
-  constructor(epochMilliseconds) {
-    this.epochMilliseconds = epochMilliseconds;
-  }
-
-  static from(isoString) {
-    return new FakeTemporalInstant(Date.parse(isoString));
-  }
-
-  static fromEpochMilliseconds(epochMilliseconds) {
-    return new FakeTemporalInstant(epochMilliseconds);
-  }
-
-  toZonedDateTimeISO(timeZoneLike) {
-    return FakeTemporalZonedDateTime.fromInstant(this, timeZoneLike);
-  }
-}
-
-const TemporalPolyfill = {
-  Instant: FakeTemporalInstant,
-  ZonedDateTime: FakeTemporalZonedDateTime,
-  Now: {
-    instant: function() {
-      return new FakeTemporalInstant(Date.now());
-    },
-    zonedDateTimeISO: function(timeZoneLike) {
-      const zone = normalizeTimeZone(timeZoneLike) || "UTC";
-      return FakeTemporalZonedDateTime.fromInstant(this.instant(), zone);
-    }
-  }
-};
+const temporalExport = TemporalPolyfillModule.Temporal ||
+  TemporalPolyfillModule.default || TemporalPolyfillModule;
+const TemporalPolyfill = temporalExport.Temporal || temporalExport;
 
 function toIsoUtc(dateTime) {
   if (dateTime.includes("[")) {
@@ -225,16 +197,17 @@ describe("relative-time", function() {
     });
 
     it("should use Temporal.Now when now is omitted", function() {
-      const instantNow = zoned("2016-04-10 12:00:00");
+      const stubInstant = global.Temporal.Instant.from("2016-04-10T12:00:00Z");
       const originalInstant = global.Temporal.Now.instant;
       const originalZoned = global.Temporal.Now.zonedDateTimeISO;
 
       global.Temporal.Now.instant = function() {
-        return new FakeTemporalInstant(instantNow.getTime());
+        return stubInstant;
       };
       global.Temporal.Now.zonedDateTimeISO = function(timeZoneLike) {
-        const zone = normalizeTimeZone(timeZoneLike) || "UTC";
-        return FakeTemporalZonedDateTime.fromInstant(global.Temporal.Now.instant(), zone);
+        const zone = typeof timeZoneLike === "string" ?
+          timeZoneLike : timeZoneLike && timeZoneLike.timeZone;
+        return stubInstant.toZonedDateTimeISO(zone || "UTC");
       };
 
       try {
