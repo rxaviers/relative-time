@@ -3,6 +3,11 @@
 Formats Temporal dates to relative time strings (e.g., "3 hours ago") using the
 same standards that ship in modern JavaScript engines.
 
+Pass a [`Temporal.PlainDateTime`](https://tc39.es/proposal-temporal/docs/plaindatetime.html)
+when the comparison does not depend on a particular time zone, or a
+[`Temporal.ZonedDateTime`](https://tc39.es/proposal-temporal/docs/zoneddatetime.html)
+to evaluate the difference within an explicit IANA zone.
+
 Built entirely on [Temporal](https://tc39.es/proposal-temporal/) for duration
 calculations and the native [Intl.RelativeTimeFormat][] API (ECMA-402) for
 localization, so you get spec-compliant results without extra runtime
@@ -104,12 +109,12 @@ Note `relative-time` checks for the actual month change instead of counting on a
 import RelativeTime from "relative-time";
 
 const relativeTime = new RelativeTime();
-const threeHoursAgo = Temporal.Now.zonedDateTimeISO().subtract({hours: 3});
+const threeHoursAgo = Temporal.Now.plainDateTimeISO().subtract({hours: 3});
 console.log(relativeTime.format(threeHoursAgo));
 // > 3 hours ago
 
 const relativeTimeInPortuguese = new RelativeTime("pt");
-const oneHourAgo = Temporal.Now.zonedDateTimeISO().subtract({hours: 1});
+const oneHourAgo = Temporal.Now.plainDateTimeISO().subtract({hours: 1});
 console.log(relativeTimeInPortuguese.format(oneHourAgo));
 // > há 1 hora
 ```
@@ -152,8 +157,11 @@ relativeTime.format(berlinDate, {now});
 
 ### date
 
-A [Temporal.ZonedDateTime](https://tc39.es/proposal-temporal/docs/zoneddatetime.html)
-representing the target moment.
+A [Temporal.PlainDateTime](https://tc39.es/proposal-temporal/docs/plaindatetime.html)
+or [Temporal.ZonedDateTime](https://tc39.es/proposal-temporal/docs/zoneddatetime.html)
+representing the target moment. Use a plain date-time when the relative distance
+should ignore time zone rules (for example, comparing two local calendar events)
+and a zoned date-time when offset and daylight-saving changes matter.
 
 ### options.unit (optional)
 
@@ -181,10 +189,13 @@ It automatically picks a unit based on the relative time scale. Basically, it lo
 
 ### options.now (optional)
 
-A [Temporal.ZonedDateTime](https://tc39.es/proposal-temporal/docs/zoneddatetime.html)
-representing the reference point used to compute the relative difference. When omitted, the
-current moment is retrieved with [`Temporal.Now`](https://tc39.es/proposal-temporal/docs/now.html)
-and evaluated in the same time zone as `date`. Passing any other type throws a `TypeError`.
+A [Temporal.PlainDateTime](https://tc39.es/proposal-temporal/docs/plaindatetime.html)
+or [Temporal.ZonedDateTime](https://tc39.es/proposal-temporal/docs/zoneddatetime.html)
+representing the reference point used to compute the relative difference. When
+omitted, the current moment is retrieved with
+[`Temporal.Now`](https://tc39.es/proposal-temporal/docs/now.html) and evaluated as
+either a plain or zoned date-time to match the type of `date`. Passing any other
+type throws a `TypeError`.
 
 ### Return
 

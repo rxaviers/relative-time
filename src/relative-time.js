@@ -14,6 +14,37 @@ function isTemporalZonedDateTime(value, Temporal) {
   return Boolean(Temporal.ZonedDateTime && value instanceof Temporal.ZonedDateTime);
 }
 
+function isTemporalPlainDateTime(value, Temporal) {
+  return Boolean(Temporal.PlainDateTime && value instanceof Temporal.PlainDateTime);
+}
+
+function resolvePlainNow(now, Temporal, target) {
+  if (now === undefined || now === null) {
+    const current = Temporal.Now.plainDateTimeISO();
+    return typeof current.withCalendar === "function" && target.calendar ?
+      current.withCalendar(target.calendar) : current;
+  }
+
+  if (!isTemporalPlainDateTime(now, Temporal)) {
+    throw new TypeError("Unsupported now value; expected Temporal.PlainDateTime");
+  }
+
+  return typeof now.withCalendar === "function" && target.calendar ?
+    now.withCalendar(target.calendar) : now;
+}
+
+function resolveZonedNow(now, Temporal, targetZone) {
+  if (now === undefined || now === null) {
+    return Temporal.Now.zonedDateTimeISO(targetZone);
+  }
+
+  if (!isTemporalZonedDateTime(now, Temporal)) {
+    throw new TypeError("Unsupported now value; expected Temporal.ZonedDateTime");
+  }
+
+  return now.withTimeZone(targetZone);
+}
+
 function differenceInUnit(now, target, unit) {
   const duration = now.until(target, {
     largestUnit: unit,
@@ -30,20 +61,18 @@ export default class RelativeTime {
 
   format(date, {unit = "best-fit", now} = {}) {
     const Temporal = getTemporal();
-    if (!isTemporalZonedDateTime(date, Temporal)) {
-      throw new TypeError("Unsupported date value; expected Temporal.ZonedDateTime");
-    }
-
-    const targetZone = date.timeZoneId;
-    const target = date.withTimeZone(targetZone);
+    let target;
     let resolvedNow;
 
-    if (now === undefined || now === null) {
-      resolvedNow = Temporal.Now.zonedDateTimeISO(targetZone);
-    } else if (isTemporalZonedDateTime(now, Temporal)) {
-      resolvedNow = now.withTimeZone(targetZone);
+    if (isTemporalZonedDateTime(date, Temporal)) {
+      const targetZone = date.timeZoneId;
+      target = date.withTimeZone(targetZone);
+      resolvedNow = resolveZonedNow(now, Temporal, targetZone);
+    } else if (isTemporalPlainDateTime(date, Temporal)) {
+      target = date;
+      resolvedNow = resolvePlainNow(now, Temporal, target);
     } else {
-      throw new TypeError("Unsupported now value; expected Temporal.ZonedDateTime");
+      throw new TypeError("Unsupported date value; expected Temporal.ZonedDateTime or Temporal.PlainDateTime");
     }
 
     const diff = {};

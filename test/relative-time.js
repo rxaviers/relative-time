@@ -5,28 +5,12 @@ const temporalExport = TemporalPolyfillModule.Temporal ||
   TemporalPolyfillModule.default || TemporalPolyfillModule;
 const TemporalPolyfill = temporalExport.Temporal || temporalExport;
 
-function toIsoUtc(dateTime) {
-  if (dateTime.includes("[")) {
-    return dateTime;
-  }
-  const parts = dateTime.split(" ");
-  const date = parts[0];
-  const time = parts[1] ? parts[1] : "00:00:00";
-  const segments = time.split(":").map(function(segment) {
-    return segment.trim();
-  });
-  while (segments.length < 3) {
-    segments.push("00");
-  }
-  return date + "T" +
-    segments[0].padStart(2, "0") + ":" +
-    segments[1].padStart(2, "0") + ":" +
-    segments[2].padStart(2, "0") +
-    "+00:00[UTC]";
+function plain(dateTime) {
+  return global.Temporal.PlainDateTime.from(dateTime);
 }
 
 function zoned(dateTime) {
-  return global.Temporal.ZonedDateTime.from(toIsoUtc(dateTime));
+  return global.Temporal.ZonedDateTime.from(dateTime);
 }
 
 describe("relative-time", function() {
@@ -45,103 +29,103 @@ describe("relative-time", function() {
 
   beforeEach(function() {
     relativeTime = new RelativeTime();
-    baseNow = zoned("2016-04-10 12:00:00");
+    baseNow = plain("2016-04-10T12:00:00");
   });
 
   describe("bestFit", function() {
     it("should format seconds-distant dates", function() {
-      expect(relativeTime.format(zoned("2016-04-10 11:59:01"), {now: baseNow})).to.equal("59 seconds ago");
-      expect(relativeTime.format(zoned("2016-04-10 12:00:00"), {now: baseNow})).to.equal("now");
-      expect(relativeTime.format(zoned("2016-04-10 12:00:59"), {now: baseNow})).to.equal("in 59 seconds");
+      expect(relativeTime.format(plain("2016-04-10T11:59:01"), {now: baseNow})).to.equal("59 seconds ago");
+      expect(relativeTime.format(plain("2016-04-10T12:00:00"), {now: baseNow})).to.equal("now");
+      expect(relativeTime.format(plain("2016-04-10T12:00:59"), {now: baseNow})).to.equal("in 59 seconds");
     });
 
     it("should format minutes-distant dates", function() {
-      expect(relativeTime.format(zoned("2016-04-10 11:01:00"), {now: baseNow})).to.equal("59 minutes ago");
-      expect(relativeTime.format(zoned("2016-04-10 11:59:00"), {now: baseNow})).to.equal("1 minute ago");
-      expect(relativeTime.format(zoned("2016-04-10 12:01:00"), {now: baseNow})).to.equal("in 1 minute");
-      expect(relativeTime.format(zoned("2016-04-10 12:01:59"), {now: baseNow})).to.equal("in 1 minute");
-      expect(relativeTime.format(zoned("2016-04-10 12:59:59"), {now: baseNow})).to.equal("in 59 minutes");
+      expect(relativeTime.format(plain("2016-04-10T11:01:00"), {now: baseNow})).to.equal("59 minutes ago");
+      expect(relativeTime.format(plain("2016-04-10T11:59:00"), {now: baseNow})).to.equal("1 minute ago");
+      expect(relativeTime.format(plain("2016-04-10T12:01:00"), {now: baseNow})).to.equal("in 1 minute");
+      expect(relativeTime.format(plain("2016-04-10T12:01:59"), {now: baseNow})).to.equal("in 1 minute");
+      expect(relativeTime.format(plain("2016-04-10T12:59:59"), {now: baseNow})).to.equal("in 59 minutes");
     });
 
     it("should format hours-distant dates", function() {
-      expect(relativeTime.format(zoned("2016-04-10 00:00:00"), {now: baseNow})).to.equal("12 hours ago");
-      expect(relativeTime.format(zoned("2016-04-10 13:00:00"), {now: baseNow})).to.equal("in 1 hour");
-      expect(relativeTime.format(zoned("2016-04-10 13:59:59"), {now: baseNow})).to.equal("in 1 hour");
-      expect(relativeTime.format(zoned("2016-04-10 23:59:59"), {now: baseNow})).to.equal("in 11 hours");
+      expect(relativeTime.format(plain("2016-04-10T00:00:00"), {now: baseNow})).to.equal("12 hours ago");
+      expect(relativeTime.format(plain("2016-04-10T13:00:00"), {now: baseNow})).to.equal("in 1 hour");
+      expect(relativeTime.format(plain("2016-04-10T13:59:59"), {now: baseNow})).to.equal("in 1 hour");
+      expect(relativeTime.format(plain("2016-04-10T23:59:59"), {now: baseNow})).to.equal("in 11 hours");
 
-      const eveningNow = zoned("2016-04-10 01:00:00");
-      expect(relativeTime.format(zoned("2016-04-09 19:00:00"), {now: eveningNow})).to.equal("6 hours ago");
-      expect(relativeTime.format(zoned("2016-04-09 18:00:00"), {now: eveningNow})).to.equal("yesterday");
+      const eveningNow = plain("2016-04-10T01:00:00");
+      expect(relativeTime.format(plain("2016-04-09T19:00:00"), {now: eveningNow})).to.equal("6 hours ago");
+      expect(relativeTime.format(plain("2016-04-09T18:00:00"), {now: eveningNow})).to.equal("yesterday");
 
-      const lateNow = zoned("2016-04-10 23:00:00");
-      expect(relativeTime.format(zoned("2016-04-11 05:00:00"), {now: lateNow})).to.equal("in 6 hours");
-      expect(relativeTime.format(zoned("2016-04-11 06:00:00"), {now: lateNow})).to.equal("tomorrow");
+      const lateNow = plain("2016-04-10T23:00:00");
+      expect(relativeTime.format(plain("2016-04-11T05:00:00"), {now: lateNow})).to.equal("in 6 hours");
+      expect(relativeTime.format(plain("2016-04-11T06:00:00"), {now: lateNow})).to.equal("tomorrow");
 
-      const janEnd = zoned("2016-01-31 23:00:00");
-      expect(relativeTime.format(zoned("2016-02-01 05:00:00"), {now: janEnd})).to.equal("in 6 hours");
-      expect(relativeTime.format(zoned("2016-02-01 07:00:00"), {now: janEnd})).to.equal("tomorrow");
+      const janEnd = plain("2016-01-31T23:00:00");
+      expect(relativeTime.format(plain("2016-02-01T05:00:00"), {now: janEnd})).to.equal("in 6 hours");
+      expect(relativeTime.format(plain("2016-02-01T07:00:00"), {now: janEnd})).to.equal("tomorrow");
 
-      const yearEnd = zoned("2016-12-31 23:00:00");
-      expect(relativeTime.format(zoned("2017-01-01 05:00:00"), {now: yearEnd})).to.equal("in 6 hours");
-      expect(relativeTime.format(zoned("2017-01-01 07:00:00"), {now: yearEnd})).to.equal("tomorrow");
+      const yearEnd = plain("2016-12-31T23:00:00");
+      expect(relativeTime.format(plain("2017-01-01T05:00:00"), {now: yearEnd})).to.equal("in 6 hours");
+      expect(relativeTime.format(plain("2017-01-01T07:00:00"), {now: yearEnd})).to.equal("tomorrow");
     });
 
     it("should format days-distant dates", function() {
-      expect(relativeTime.format(zoned("2016-04-01 00:00:00"), {now: baseNow})).to.equal("9 days ago");
-      expect(relativeTime.format(zoned("2016-04-09 18:00:00"), {now: baseNow})).to.equal("yesterday");
-      expect(relativeTime.format(zoned("2016-04-11 09:00:00"), {now: baseNow})).to.equal("tomorrow");
-      expect(relativeTime.format(zoned("2016-04-30 23:59:00"), {now: baseNow})).to.equal("in 20 days");
-      expect(relativeTime.format(zoned("2016-03-31 23:59:00"), {now: baseNow})).to.equal("last month");
-      expect(relativeTime.format(zoned("2016-05-01 00:00:00"), {now: baseNow})).to.equal("next month");
+      expect(relativeTime.format(plain("2016-04-01T00:00:00"), {now: baseNow})).to.equal("9 days ago");
+      expect(relativeTime.format(plain("2016-04-09T18:00:00"), {now: baseNow})).to.equal("yesterday");
+      expect(relativeTime.format(plain("2016-04-11T09:00:00"), {now: baseNow})).to.equal("tomorrow");
+      expect(relativeTime.format(plain("2016-04-30T23:59:00"), {now: baseNow})).to.equal("in 20 days");
+      expect(relativeTime.format(plain("2016-03-31T23:59:00"), {now: baseNow})).to.equal("last month");
+      expect(relativeTime.format(plain("2016-05-01T00:00:00"), {now: baseNow})).to.equal("next month");
 
-      const aprilSixth = zoned("2016-04-06 12:00:00");
-      expect(relativeTime.format(zoned("2016-03-31 23:59:00"), {now: aprilSixth})).to.equal("6 days ago");
+      const aprilSixth = plain("2016-04-06T12:00:00");
+      expect(relativeTime.format(plain("2016-03-31T23:59:00"), {now: aprilSixth})).to.equal("6 days ago");
 
-      const aprilTwentyFifth = zoned("2016-04-25 23:00:00");
-      expect(relativeTime.format(zoned("2016-05-01 00:00:00"), {now: aprilTwentyFifth})).to.equal("in 6 days");
+      const aprilTwentyFifth = plain("2016-04-25T23:00:00");
+      expect(relativeTime.format(plain("2016-05-01T00:00:00"), {now: aprilTwentyFifth})).to.equal("in 6 days");
     });
 
     it("should format months-distant dates", function() {
-      expect(relativeTime.format(zoned("2016-01-01 00:00:00"), {now: baseNow})).to.equal("3 months ago");
-      expect(relativeTime.format(zoned("2016-03-01 00:00:00"), {now: baseNow})).to.equal("last month");
-      expect(relativeTime.format(zoned("2016-05-01 00:00:00"), {now: baseNow})).to.equal("next month");
-      expect(relativeTime.format(zoned("2016-12-01 23:59:00"), {now: baseNow})).to.equal("in 8 months");
+      expect(relativeTime.format(plain("2016-01-01T00:00:00"), {now: baseNow})).to.equal("3 months ago");
+      expect(relativeTime.format(plain("2016-03-01T00:00:00"), {now: baseNow})).to.equal("last month");
+      expect(relativeTime.format(plain("2016-05-01T00:00:00"), {now: baseNow})).to.equal("next month");
+      expect(relativeTime.format(plain("2016-12-01T23:59:00"), {now: baseNow})).to.equal("in 8 months");
 
-      const janTwelve = zoned("2017-01-12 18:30:00");
-      expect(relativeTime.format(zoned("2016-12-29 18:30:00"), {now: janTwelve})).to.equal("last month");
+      const janTwelve = plain("2017-01-12T18:30:00");
+      expect(relativeTime.format(plain("2016-12-29T18:30:00"), {now: janTwelve})).to.equal("last month");
 
-      const decTwentyNine = zoned("2016-12-29 18:30:00");
-      expect(relativeTime.format(zoned("2017-01-12 18:30:00"), {now: decTwentyNine})).to.equal("next month");
+      const decTwentyNine = plain("2016-12-29T18:30:00");
+      expect(relativeTime.format(plain("2017-01-12T18:30:00"), {now: decTwentyNine})).to.equal("next month");
 
-      const febTwentyEight = zoned("2016-02-28 12:00:00");
-      expect(relativeTime.format(zoned("2015-12-31 23:59:00"), {now: febTwentyEight})).to.equal("2 months ago");
+      const febTwentyEight = plain("2016-02-28T12:00:00");
+      expect(relativeTime.format(plain("2015-12-31T23:59:00"), {now: febTwentyEight})).to.equal("2 months ago");
     });
 
     it("should format years-distant dates", function() {
-      expect(relativeTime.format(zoned("2010-06-01 12:00:00"), {now: baseNow})).to.equal("6 years ago");
-      expect(relativeTime.format(zoned("2015-12-31 23:59:00"), {now: baseNow})).to.equal("last year");
-      expect(relativeTime.format(zoned("2017-01-01 00:00:00"), {now: baseNow})).to.equal("next year");
+      expect(relativeTime.format(plain("2010-06-01T12:00:00"), {now: baseNow})).to.equal("6 years ago");
+      expect(relativeTime.format(plain("2015-12-31T23:59:00"), {now: baseNow})).to.equal("last year");
+      expect(relativeTime.format(plain("2017-01-01T00:00:00"), {now: baseNow})).to.equal("next year");
 
-      const octSecond = zoned("2016-10-02 12:00:00");
-      expect(relativeTime.format(zoned("2017-01-01 00:00:00"), {now: octSecond})).to.equal("next year");
+      const octSecond = plain("2016-10-02T12:00:00");
+      expect(relativeTime.format(plain("2017-01-01T00:00:00"), {now: octSecond})).to.equal("next year");
     });
 
     it("should format relative time using hours", function() {
-      expect(relativeTime.format(zoned("2016-04-10 12:45:00"), {unit: "hour", now: baseNow})).to.equal("this hour");
-      expect(relativeTime.format(zoned("2016-04-10 11:01:00"), {unit: "hour", now: baseNow})).to.equal("1 hour ago");
-      expect(relativeTime.format(zoned("2016-04-10 00:00:00"), {unit: "hour", now: baseNow})).to.equal("12 hours ago");
-      expect(relativeTime.format(zoned("2016-04-01 00:00:00"), {unit: "hour", now: baseNow})).to.equal("228 hours ago");
-      expect(relativeTime.format(zoned("2016-01-01 00:00:00"), {unit: "hour", now: baseNow})).to.equal("2,412 hours ago");
+      expect(relativeTime.format(plain("2016-04-10T12:45:00"), {unit: "hour", now: baseNow})).to.equal("this hour");
+      expect(relativeTime.format(plain("2016-04-10T11:01:00"), {unit: "hour", now: baseNow})).to.equal("1 hour ago");
+      expect(relativeTime.format(plain("2016-04-10T00:00:00"), {unit: "hour", now: baseNow})).to.equal("12 hours ago");
+      expect(relativeTime.format(plain("2016-04-01T00:00:00"), {unit: "hour", now: baseNow})).to.equal("228 hours ago");
+      expect(relativeTime.format(plain("2016-01-01T00:00:00"), {unit: "hour", now: baseNow})).to.equal("2,412 hours ago");
     });
 
     it("should format relative time using days", function() {
-      expect(relativeTime.format(zoned("2016-04-10 11:30:00"), {unit: "day", now: baseNow})).to.equal("today");
-      expect(relativeTime.format(zoned("2016-01-01 00:00:00"), {unit: "day", now: baseNow})).to.equal("100 days ago");
+      expect(relativeTime.format(plain("2016-04-10T11:30:00"), {unit: "day", now: baseNow})).to.equal("today");
+      expect(relativeTime.format(plain("2016-01-01T00:00:00"), {unit: "day", now: baseNow})).to.equal("100 days ago");
     });
 
     it("should format relative time using months", function() {
-      expect(relativeTime.format(zoned("2016-04-10 23:59:59"), {unit: "month", now: baseNow})).to.equal("this month");
-      expect(relativeTime.format(zoned("2017-01-01 00:00:00"), {unit: "month", now: baseNow})).to.equal("in 9 months");
+      expect(relativeTime.format(plain("2016-04-10T23:59:59"), {unit: "month", now: baseNow})).to.equal("this month");
+      expect(relativeTime.format(plain("2017-01-01T00:00:00"), {unit: "month", now: baseNow})).to.equal("in 9 months");
     });
   });
 
@@ -185,14 +169,36 @@ describe("relative-time", function() {
       }).to.throw(TypeError, /Temporal\.ZonedDateTime/);
     });
 
-    it("should reject non-ZonedDateTime now values", function() {
+    it("should reject non-PlainDateTime now values for PlainDateTime targets", function() {
       const instantNow = global.Temporal.Instant.from("2016-04-10T12:00:00Z");
       expect(function() {
-        relativeTime.format(zoned("2016-04-10 11:59:01"), {now: instantNow});
+        relativeTime.format(plain("2016-04-10T11:59:01"), {now: instantNow});
+      }).to.throw(TypeError, /Temporal\.PlainDateTime/);
+    });
+
+    it("should reject non-ZonedDateTime now values for ZonedDateTime targets", function() {
+      const instantNow = global.Temporal.Instant.from("2016-04-10T12:00:00Z");
+      expect(function() {
+        relativeTime.format(zoned("2016-04-10T11:59:01Z[UTC]"), {now: instantNow});
       }).to.throw(TypeError, /Temporal\.ZonedDateTime/);
     });
 
-    it("should use Temporal.Now when now is omitted", function() {
+    it("should use Temporal.Now when now is omitted for PlainDateTime targets", function() {
+      const stubNow = plain("2016-04-10T12:00:00");
+      const originalPlain = global.Temporal.Now.plainDateTimeISO;
+
+      global.Temporal.Now.plainDateTimeISO = function() {
+        return stubNow;
+      };
+
+      try {
+        expect(relativeTime.format(plain("2016-04-10T11:59:01"))).to.equal("59 seconds ago");
+      } finally {
+        global.Temporal.Now.plainDateTimeISO = originalPlain;
+      }
+    });
+
+    it("should use Temporal.Now when now is omitted for ZonedDateTime targets", function() {
       const stubNow = zoned("2016-04-10T12:00:00Z[UTC]");
       const originalZoned = global.Temporal.Now.zonedDateTimeISO;
 
@@ -203,7 +209,7 @@ describe("relative-time", function() {
       };
 
       try {
-        expect(relativeTime.format(zoned("2016-04-10 11:59:01"))).to.equal("59 seconds ago");
+        expect(relativeTime.format(zoned("2016-04-10T11:59:01Z[UTC]"))).to.equal("59 seconds ago");
       } finally {
         global.Temporal.Now.zonedDateTimeISO = originalZoned;
       }
