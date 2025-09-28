@@ -178,42 +178,33 @@ describe("relative-time", function() {
   });
 
   describe("Temporal inputs", function() {
-    it("should accept Temporal.Instant values", function() {
+    it("should reject non-ZonedDateTime dates", function() {
       const instant = global.Temporal.Instant.from("2016-04-10T11:59:01Z");
-      expect(relativeTime.format(instant, {now: baseNow})).to.equal("59 seconds ago");
+      expect(function() {
+        relativeTime.format(instant, {now: baseNow});
+      }).to.throw(TypeError, /Temporal\.ZonedDateTime/);
     });
 
-    it("should accept Temporal.Instant now values when a time zone is known", function() {
-      const instantNow = global.Temporal.Instant.from("2016-04-10T12:00:00Z");
-      expect(relativeTime.format(zoned("2016-04-10 11:59:01"), {now: instantNow})).to.equal("59 seconds ago");
-    });
-
-    it("should require a time zone when both values are Temporal.Instant", function() {
-      const target = global.Temporal.Instant.from("2016-04-10T11:59:01Z");
+    it("should reject non-ZonedDateTime now values", function() {
       const instantNow = global.Temporal.Instant.from("2016-04-10T12:00:00Z");
       expect(function() {
-        relativeTime.format(target, {now: instantNow});
-      }).to.throw(TypeError, /Temporal\.ZonedDateTime `now` value/);
+        relativeTime.format(zoned("2016-04-10 11:59:01"), {now: instantNow});
+      }).to.throw(TypeError, /Temporal\.ZonedDateTime/);
     });
 
     it("should use Temporal.Now when now is omitted", function() {
-      const stubInstant = global.Temporal.Instant.from("2016-04-10T12:00:00Z");
-      const originalInstant = global.Temporal.Now.instant;
+      const stubNow = zoned("2016-04-10T12:00:00Z[UTC]");
       const originalZoned = global.Temporal.Now.zonedDateTimeISO;
 
-      global.Temporal.Now.instant = function() {
-        return stubInstant;
-      };
       global.Temporal.Now.zonedDateTimeISO = function(timeZoneLike) {
         const zone = typeof timeZoneLike === "string" ?
           timeZoneLike : timeZoneLike && timeZoneLike.timeZone;
-        return stubInstant.toZonedDateTimeISO(zone || "UTC");
+        return stubNow.withTimeZone(zone || stubNow.timeZoneId);
       };
 
       try {
         expect(relativeTime.format(zoned("2016-04-10 11:59:01"))).to.equal("59 seconds ago");
       } finally {
-        global.Temporal.Now.instant = originalInstant;
         global.Temporal.Now.zonedDateTimeISO = originalZoned;
       }
     });

@@ -104,11 +104,13 @@ Note `relative-time` checks for the actual month change instead of counting on a
 import RelativeTime from "relative-time";
 
 const relativeTime = new RelativeTime();
-console.log(relativeTime.format(Temporal.Now.instant()));
-// > now
+const threeHoursAgo = Temporal.Now.zonedDateTimeISO().subtract({hours: 3});
+console.log(relativeTime.format(threeHoursAgo));
+// > 3 hours ago
 
 const relativeTimeInPortuguese = new RelativeTime("pt");
-console.log(relativeTimeInPortuguese.format(Temporal.Now.instant().subtract({hours: 1})));
+const oneHourAgo = Temporal.Now.zonedDateTimeISO().subtract({hours: 1});
+console.log(relativeTimeInPortuguese.format(oneHourAgo));
 // > há 1 hora
 ```
 
@@ -142,11 +144,6 @@ const berlinDate = Temporal.ZonedDateTime.from(
 relativeTime.format(berlinDate, {now});
 // > "12 hours ago"
 
-// Comparing instants requires a reference time zone provided by a ZonedDateTime.
-const eventInstant = Temporal.Instant.from("2016-04-10T11:59:01Z");
-const comparisonNow = Temporal.Now.zonedDateTimeISO("UTC");
-relativeTime.format(eventInstant, {now: comparisonNow});
-// > "59 seconds ago"
 ```
 
 ## API
@@ -155,8 +152,8 @@ relativeTime.format(eventInstant, {now: comparisonNow});
 
 ### date
 
-A [Temporal.Instant](https://tc39.es/proposal-temporal/docs/instant.html) or a
-[Temporal.ZonedDateTime](https://tc39.es/proposal-temporal/docs/zoneddatetime.html).
+A [Temporal.ZonedDateTime](https://tc39.es/proposal-temporal/docs/zoneddatetime.html)
+representing the target moment.
 
 ### options.unit (optional)
 
@@ -184,12 +181,10 @@ It automatically picks a unit based on the relative time scale. Basically, it lo
 
 ### options.now (optional)
 
-A [Temporal.ZonedDateTime](https://tc39.es/proposal-temporal/docs/zoneddatetime.html) or
-[Temporal.Instant](https://tc39.es/proposal-temporal/docs/instant.html) representing the
-reference point used to compute the relative difference. When omitted, the current moment is
-retrieved with [`Temporal.Now`](https://tc39.es/proposal-temporal/docs/now.html). If both `date`
-and `options.now` are instants, the comparison fails because there's no time zone context—pass a
-`Temporal.ZonedDateTime` as `options.now` to establish one.
+A [Temporal.ZonedDateTime](https://tc39.es/proposal-temporal/docs/zoneddatetime.html)
+representing the reference point used to compute the relative difference. When omitted, the
+current moment is retrieved with [`Temporal.Now`](https://tc39.es/proposal-temporal/docs/now.html)
+and evaluated in the same time zone as `date`. Passing any other type throws a `TypeError`.
 
 ### Return
 
