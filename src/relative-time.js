@@ -46,6 +46,52 @@ function resolveZonedNow(now, Temporal, targetZone) {
 }
 
 function differenceInUnit(now, target, unit) {
+  if (unit === "year" || unit === "month") {
+    const startDate = typeof now.toPlainDate === "function" ? now.toPlainDate() : now;
+    const endDate = typeof target.toPlainDate === "function" ? target.toPlainDate() : target;
+    const yearDelta = endDate.year - startDate.year;
+
+    if (unit === "year") {
+      return yearDelta;
+    }
+
+    return yearDelta * 12 + (endDate.month - startDate.month);
+  }
+
+  if (unit === "day") {
+    const startDate = typeof now.toPlainDate === "function" ? now.toPlainDate() : now;
+    const endDate = typeof target.toPlainDate === "function" ? target.toPlainDate() : target;
+    const duration = startDate.until(endDate, {
+      largestUnit: unit,
+      smallestUnit: unit,
+      roundingMode: "trunc"
+    });
+    return duration.days;
+  }
+
+  if (unit === "hour") {
+    const duration = now.until(target, {
+      largestUnit: unit,
+      smallestUnit: unit,
+      roundingMode: "trunc"
+    });
+    let hours = duration.hours;
+
+    if (hours === 0) {
+      const minutes = now.until(target, {
+        largestUnit: "minute",
+        smallestUnit: "minute",
+        roundingMode: "trunc"
+      });
+
+      if (minutes.minutes < 0) {
+        return -1;
+      }
+    }
+
+    return hours;
+  }
+
   const duration = now.until(target, {
     largestUnit: unit,
     smallestUnit: unit,

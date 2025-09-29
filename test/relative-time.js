@@ -1,9 +1,5 @@
 import RelativeTime from "../src/relative-time";
-import * as TemporalPolyfillModule from "temporal-luxon";
-
-const temporalExport = TemporalPolyfillModule.Temporal ||
-  TemporalPolyfillModule.default || TemporalPolyfillModule;
-const TemporalPolyfill = temporalExport.Temporal || temporalExport;
+import { Temporal as TemporalPolyfill } from "@js-temporal/polyfill";
 
 function plain(dateTime) {
   return global.Temporal.PlainDateTime.from(dateTime);
