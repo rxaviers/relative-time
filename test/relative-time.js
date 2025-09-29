@@ -130,34 +130,32 @@ describe("relative-time", function() {
   });
 
   describe("time zone", function() {
-    beforeEach(function() {
-      baseNow = zoned("2016-04-10T12:00:00Z[UTC]");
-    });
-
     it("should support using specific time zone", function() {
       const losAngelesDate = zoned("2016-04-09T17:00:00-07:00[America/Los_Angeles]");
-      expect(relativeTime.format(losAngelesDate, {now: baseNow})).to.equal("yesterday");
+      const losAngelesNow = zoned("2016-04-10T05:00:00-07:00[America/Los_Angeles]");
+      expect(relativeTime.format(losAngelesDate, {now: losAngelesNow})).to.equal("yesterday");
 
       const berlinDate = zoned("2016-04-10T02:00:00+02:00[Europe/Berlin]");
-      expect(relativeTime.format(berlinDate, {now: baseNow})).to.equal("12 hours ago");
+      const berlinNow = zoned("2016-04-10T14:00:00+02:00[Europe/Berlin]");
+      expect(relativeTime.format(berlinDate, {now: berlinNow})).to.equal("12 hours ago");
 
       const losAngelesMarchDate = zoned("2016-03-31T17:00:00-07:00[America/Los_Angeles]");
-      expect(relativeTime.format(losAngelesMarchDate, {now: baseNow})).to.equal("last month");
+      expect(relativeTime.format(losAngelesMarchDate, {now: losAngelesNow})).to.equal("last month");
 
       const berlinAprilDate = zoned("2016-04-01T02:00:00+02:00[Europe/Berlin]");
-      expect(relativeTime.format(berlinAprilDate, {now: baseNow})).to.equal("9 days ago");
+      expect(relativeTime.format(berlinAprilDate, {now: berlinNow})).to.equal("9 days ago");
 
       const losAngelesYearDate = zoned("2015-12-31T16:00:00-08:00[America/Los_Angeles]");
-      expect(relativeTime.format(losAngelesYearDate, {now: baseNow})).to.equal("last year");
+      expect(relativeTime.format(losAngelesYearDate, {now: losAngelesNow})).to.equal("last year");
 
       const berlinYearDate = zoned("2016-01-01T01:00:00+01:00[Europe/Berlin]");
-      expect(relativeTime.format(berlinYearDate, {now: baseNow})).to.equal("3 months ago");
+      expect(relativeTime.format(berlinYearDate, {now: berlinNow})).to.equal("3 months ago");
     });
 
     it("should format daylight savings edge cases", function() {
-      baseNow = zoned("2017-03-12T10:00:00Z[UTC]");
+      const losAngelesNow = zoned("2017-03-12T03:00:00-07:00[America/Los_Angeles]");
       const dstDate = zoned("2017-03-12T01:00:00-08:00[America/Los_Angeles]");
-      expect(relativeTime.format(dstDate, {now: baseNow})).to.equal("1 hour ago");
+      expect(relativeTime.format(dstDate, {now: losAngelesNow})).to.equal("1 hour ago");
     });
   });
 
@@ -179,7 +177,7 @@ describe("relative-time", function() {
     it("should reject non-ZonedDateTime now values for ZonedDateTime targets", function() {
       const instantNow = global.Temporal.Instant.from("2016-04-10T12:00:00Z");
       expect(function() {
-        relativeTime.format(zoned("2016-04-10T11:59:01Z[UTC]"), {now: instantNow});
+        relativeTime.format(zoned("2016-04-10T11:59:01[UTC]"), {now: instantNow});
       }).to.throw(TypeError, /Temporal\.ZonedDateTime/);
     });
 
@@ -199,7 +197,7 @@ describe("relative-time", function() {
     });
 
     it("should use Temporal.Now when now is omitted for ZonedDateTime targets", function() {
-      const stubNow = zoned("2016-04-10T12:00:00Z[UTC]");
+      const stubNow = zoned("2016-04-10T12:00:00[UTC]");
       const originalZoned = global.Temporal.Now.zonedDateTimeISO;
 
       global.Temporal.Now.zonedDateTimeISO = function(timeZoneLike) {
@@ -209,7 +207,7 @@ describe("relative-time", function() {
       };
 
       try {
-        expect(relativeTime.format(zoned("2016-04-10T11:59:01Z[UTC]"))).to.equal("59 seconds ago");
+        expect(relativeTime.format(zoned("2016-04-10T11:59:01[UTC]"))).to.equal("59 seconds ago");
       } finally {
         global.Temporal.Now.zonedDateTimeISO = originalZoned;
       }
