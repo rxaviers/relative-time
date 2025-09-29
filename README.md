@@ -1,29 +1,53 @@
 # Relative Time
 
-Formats JavaScript dates to relative time strings (e.g., "3 hours ago").
+Formats Temporal dates to relative time strings (e.g., "3 hours ago") using the
+same standards that ship in modern JavaScript engines.
 
-Based on the [Unicode CLDR][] locale data. Powered by [globalizejs/globalize][].
+Pass a [`Temporal.PlainDateTime`](https://tc39.es/proposal-temporal/docs/plaindatetime.html)
+when the comparison does not depend on a particular time zone, or a
+[`Temporal.ZonedDateTime`](https://tc39.es/proposal-temporal/docs/zoneddatetime.html)
+to evaluate the difference within an explicit IANA zone.
+
+Built entirely on [Temporal](https://tc39.es/proposal-temporal/) for duration
+calculations and the native [Intl.RelativeTimeFormat][] API (ECMA-402) for
+localization, so you get spec-compliant results without extra runtime
+dependencies.
+
+The usage examples below assume [Temporal](https://tc39.es/proposal-temporal/) is available (either natively or via the
+[@js-temporal/polyfill](https://github.com/js-temporal/temporal-polyfill)).
 
 [Unicode CLDR]: http://cldr.unicode.org/
-[globalizejs/globalize]: http://globalizejs.com/
+[Intl.RelativeTimeFormat]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Intl/RelativeTimeFormat
 
 ## Why
 
-### Leverages Unicode CLDR
+### Built on native web standards
 
-Leverages Unicode CLDR (via [Globalize](http://globalizejs.com)), the largest and most extensive standard repository of locale data available.
+Temporal handles the date math while [Intl.RelativeTimeFormat][] provides the
+localized strings, so the library always uses the same Unicode CLDR data that
+ships with the runtime. There are no custom heuristics, shimmed tokens, or
+vendor-specific formatting rules to maintain.
 
-It also means messages like `"today"`, `"yesterday"`, `"last month"` are available and properly localized in the various CLDR supported locales.
+Standard APIs also mean the examples in this README run anywhere Temporal is
+available (including via the official polyfill) and benefit from future engine
+improvements automatically.
 
-### IANA time zone support
+### Time zone support
+
+Temporal.ZonedDateTime inputs preserve the offset and daylight-saving rules for
+each region, so the formatter stays accurate even when comparing the same instant
+across different cities. The chart below shows how two zones perceive the same
+event (`x`) and “now” (`N`).
 
 ```
-hr.  | | | | | | | | | | | | | | | | | | | | | | | | | |
-day  | x .  .              N |   .  .                |
-PDT  .   .  Mar 21 PDT       .   .  Mar 23, 00:00 PDT
-EDT  .   Mar 21 EDT          .   Mar 22, 00:00 EDT
-UTC  Mar 21                  Mar 22, 00:00
+hr.  | | | | | | | | | | | | | | | | | | | | | | | |
+       x . . . . . . . . . . . . . . . . . . | . N
+EDT      <------------ Mar 21 -----------> | <-----> (Mar 22)
+PDT      <----------------- Mar 21 ---------------->
 ```
+
+New York crosses midnight between `x` and `N`, so the event reads as “yesterday”,
+but Los Angeles does not, yielding “21 hours ago”.
 The relative time between `x` and now `N` is:
 
 | time zone           | relative-time result |
@@ -31,7 +55,13 @@ The relative time between `x` and now `N` is:
 | America/New_York    | `"yesterday"`        |
 | America/Los_Angeles | `"21 hours ago"`     |
 
-### What you get is correct
+### Better results than other libraries
+
+Other open-source relative time utilities rely on hand-tuned thresholds that can
+misreport day or month boundaries. Because this project delegates that logic to
+Temporal and CLDR data, it keeps human language aligned with calendar reality.
+The comparisons below highlight real cases where Moment.js and similar libraries
+fall short.
 
 #### day
 
@@ -43,12 +73,12 @@ day    |                    b  |          a            |        N              |
 
 ```
 
-Let's assume now (`N`) is *Mar 23, 9 AM*.
+Let's assume now (`N`) is _Mar 23, 9 AM_.
 
-|                       | relative-time  | moment.js       |
-| --------------------- | -------------- | --------------- |
-| *Mar 22, 11 AM* (`a`) | `"yesterday"`  | `"a day ago"`   |
-| *Mar 21, 8 PM* (`b`)  | `"2 days ago"` | `"a day ago"` ❓ |
+|                       | relative-time  | moment.js        |
+| --------------------- | -------------- | ---------------- |
+| _Mar 22, 11 AM_ (`a`) | `"yesterday"`  | `"a day ago"`    |
+| _Mar 21, 8 PM_ (`b`)  | `"2 days ago"` | `"a day ago"` ❓ |
 
 Note `relative-time` checks for the actual day change instead of counting on approximate number of hours to turn the unit.
 
@@ -60,66 +90,56 @@ day  | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | |
 mo.  |       d                  c|b   a                         N|
 ```
 
-Let's assume now (`N`) is *Mar 31*.
+Let's assume now (`N`) is _Mar 31_.
 
-|                | relative-time   | moment.js          |
-| -------------- | --------------- | ------------------ |
-| *Mar 5* (`a`)  | `"26 days ago"` | `"a month ago"` ❓  |
-| *Mar 1* (`b`)  | `"30 days ago"` | `"a month ago"` ❓  |
-| *Feb 28* (`c`) | `"last month"`  | `"a month ago"`    |
-| *Feb 9* (`d`)  | `"last month"`  | `"2 months ago"` ❓ |
+|                | relative-time   | moment.js           |
+| -------------- | --------------- | ------------------- |
+| _Mar 5_ (`a`)  | `"26 days ago"` | `"a month ago"` ❓  |
+| _Mar 1_ (`b`)  | `"30 days ago"` | `"a month ago"` ❓  |
+| _Feb 28_ (`c`) | `"last month"`  | `"a month ago"`     |
+| _Feb 9_ (`d`)  | `"last month"`  | `"2 months ago"` ❓ |
 
 Note `relative-time` checks for the actual month change instead of counting on approximate number of days to turn the unit.
 
 ## Usage
 
-    npm install --save relative-time globalize cldr-data
+    npm install --save relative-time
 
 ```js
-var cldrData = require("cldr-data");
-var Globalize = require("globalize");
-var RelativeTime = require("relative-time").default;
+import RelativeTime from "relative-time";
 
-// Feed Globalize on CLDR.
-Globalize.load(cldrData.entireSupplemental(), cldrData.entireMainFor("en"));
-Globalize.locale("en");
+const relativeTime = new RelativeTime();
+const threeHoursAgo = Temporal.Now.plainDateTimeISO().subtract({ hours: 3 });
+console.log(relativeTime.format(threeHoursAgo));
+// > 3 hours ago
 
-var relativeTime = new RelativeTime();
-console.log(relativeTime.format(new Date()));
-// > now
+const relativeTimeInPortuguese = new RelativeTime("pt");
+const oneHourAgo = Temporal.Now.plainDateTimeISO().subtract({ hours: 1 });
+console.log(relativeTimeInPortuguese.format(oneHourAgo));
+// > há 1 hora
 ```
 
-### IANA time zone support
+### Time zone support
 
-In addition to the above, install `iana-tz-data`.
+When you need to evaluate relative time in a different IANA time zone, create a
+`Temporal.ZonedDateTime` in that zone before calling `format`.
 
-```
-npm install --save iana-tz-data
-```
-
-The example below assume now is `2016-04-10T12:00:00Z`, i.e.,
-
-|      | UTC                  | America/Los_Angeles             | Europe/Berlin                            |
-| ---- | -------------------- | ------------------------------- | ---------------------------------------- |
-| date | 2016-04-10T00:00:00Z | 2016-04-09 17:00:00 GMT-7 (PDT) | 2016-04-10 14:00:00 GMT+2 (Central European Summer Time) |
-| now  | 2016-04-10T12:00:00Z | 2016-04-10 05:00:00 GMT-7 (PDT) | 2016-04-10 14:00:00 GMT+2 (Central European Summer Time) |
+|      | America/Los_Angeles             | Europe/Berlin                                            |
+| ---- | ------------------------------- | -------------------------------------------------------- |
+| date | 2016-04-09 17:00:00 GMT-7 (PDT) | 2016-04-10 02:00:00 GMT+2 (Central European Summer Time) |
+| now  | 2016-04-10 05:00:00 GMT-7 (PDT) | 2016-04-10 14:00:00 GMT+2 (Central European Summer Time) |
 
 ```js
-var ianaTzData = require("iana-tz-data");
-var date = new Date("2016-04-10T00:00:00Z");
-
-// Target: 2016-04-09 17:00:00 GMT-7 (PDT)
-// Now: 2016-04-10 05:00:00 GMT-7 (PDT)
-relativeTime.format(date, {
-  timeZoneData: ianaTzData.zoneData.America.Los_Angeles
-});
+const losAngelesDate = Temporal.ZonedDateTime.from(
+  "2016-04-09T17:00:00-07:00[America/Los_Angeles]"
+);
+relativeTime.format(losAngelesDate, { now: losAngelesNow });
 // > "yesterday"
 
-// Target: 2016-04-10 14:00:00 GMT+2 (Central European Summer Time)
-// Now: 2016-04-10 14:00:00 GMT+2 (Central European Summer Time)
-relativeTime.format(date, {
-  timeZoneData: ianaTzData.zoneData.Europe.Berlin
-});
+const berlinDate = Temporal.ZonedDateTime.from(
+  "2016-04-10T02:00:00+02:00[Europe/Berlin]"
+);
+relativeTime.format(berlinDate, { now: berlinNow });
 // > "12 hours ago"
 ```
 
@@ -129,7 +149,11 @@ relativeTime.format(date, {
 
 ### date
 
-A [JavaScript date object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date), i.e., `new Date()`.
+A [Temporal.PlainDateTime](https://tc39.es/proposal-temporal/docs/plaindatetime.html)
+or [Temporal.ZonedDateTime](https://tc39.es/proposal-temporal/docs/zoneddatetime.html)
+representing the target moment. Use a plain date-time when the relative distance
+should ignore time zone rules (for example, comparing two local calendar events)
+and a zoned date-time when offset and daylight-saving changes matter.
 
 ### options.unit (optional)
 
@@ -155,11 +179,15 @@ It automatically picks a unit based on the relative time scale. Basically, it lo
 - If `absDiffMinutes > 0 && absDiffSeconds > threshold.second`, return `"minutes"`.
 - Return `"second"`.
 
-### options.timeZoneData (optional)
+### options.now (optional)
 
-The *zdumped* IANA timezone data (found on the [iana-tz-data](https://github.com/rxaviers/iana-tz-data) package) for the desired timeZoneId.
-
-If not provided, the user's environment time zone is used (default).
+A [Temporal.PlainDateTime](https://tc39.es/proposal-temporal/docs/plaindatetime.html)
+or [Temporal.ZonedDateTime](https://tc39.es/proposal-temporal/docs/zoneddatetime.html)
+representing the reference point used to compute the relative difference. When
+omitted, the current moment is retrieved with
+[`Temporal.Now`](https://tc39.es/proposal-temporal/docs/now.html) and evaluated as
+either a plain or zoned date-time to match the type of `date`. Passing any other
+type throws a `TypeError`.
 
 ### Return
 
@@ -169,7 +197,7 @@ Returns the formatted relative time string given `date` and `options`.
 
 ### Relative time
 
-In this library, we'll define relative time as what makes sense for expressions like "now", "2 days ago", "in 3 months", "last year", "yesterday", and so on. In a more formal definition, *relative time* is an approximate date distance given a unit. This is, *relative time* is the date distance of *a* and *b* ± error, where error < unit. Please, see the below examples of each unit for clarity.
+In this library, we'll define relative time as what makes sense for expressions like "now", "2 days ago", "in 3 months", "last year", "yesterday", and so on. In a more formal definition, _relative time_ is an approximate date distance given a unit. This is, _relative time_ is the date distance of _a_ and _b_ ± error, where error < unit. Please, see the below examples of each unit for clarity.
 
 #### second
 
