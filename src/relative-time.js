@@ -10,6 +10,22 @@ function getTemporal() {
   return Temporal;
 }
 
+function defineCachedGetter(object, property, compute) {
+  Object.defineProperty(object, property, {
+    configurable: true,
+    enumerable: true,
+    get() {
+      const value = compute();
+      Object.defineProperty(object, property, {
+        configurable: true,
+        enumerable: true,
+        value
+      });
+      return value;
+    }
+  });
+}
+
 function isTemporalZonedDateTime(value, Temporal) {
   return Boolean(Temporal.ZonedDateTime && value instanceof Temporal.ZonedDateTime);
 }
@@ -121,14 +137,18 @@ export default class RelativeTime {
       throw new TypeError("Unsupported date value; expected Temporal.ZonedDateTime or Temporal.PlainDateTime");
     }
 
-    const diff = {};
-    ["year", "month", "day", "hour", "minute", "second"].forEach(function(currentUnit) {
-      diff[currentUnit] = differenceInUnit(resolvedNow, target, currentUnit);
-    });
+    const diff = Object.create(null);
+    const absDiff = Object.create(null);
+    const diffUnits = ["year", "month", "day", "hour", "minute", "second"];
 
-    const absDiff = {};
-    Object.keys(diff).forEach(function(currentUnit) {
-      absDiff[currentUnit] = Math.abs(diff[currentUnit]);
+    diffUnits.forEach(function(currentUnit) {
+      defineCachedGetter(diff, currentUnit, function() {
+        return differenceInUnit(resolvedNow, target, currentUnit);
+      });
+
+      defineCachedGetter(absDiff, currentUnit, function() {
+        return Math.abs(diff[currentUnit]);
+      });
     });
 
     if (unit === "best-fit") {
