@@ -32,7 +32,7 @@ Standard APIs also mean the examples in this README run anywhere Temporal is
 available (including via the official polyfill) and benefit from future engine
 improvements automatically.
 
-### Understands IANA time zones
+### Time zone support
 
 Temporal.ZonedDateTime inputs preserve the offset and daylight-saving rules for
 each region, so the formatter stays accurate even when comparing the same instant
@@ -40,12 +40,12 @@ across different cities. The chart below shows how two zones perceive the same
 event (`x`) and “now” (`N`).
 
 ```
-hr.  | | | | | | | | | | | | | | | | | | | | | | | | | |
-day  | x .  .              N |   .  .                |
-PDT  .   .  Mar 21 PDT       .   .  Mar 23, 00:00 PDT
-EDT  .   Mar 21 EDT          .   Mar 22, 00:00 EDT
-UTC  Mar 21                  Mar 22, 00:00
+hr.  | | | | | | | | | | | | | | | | | | | | | | | |
+       x . . . . . . . . . . . . . . . . . . | . N
+EDT      <------------ Mar 21 -----------> | <-----> (Mar 22)
+PDT      <----------------- Mar 21 ---------------->
 ```
+
 New York crosses midnight between `x` and `N`, so the event reads as “yesterday”,
 but Los Angeles does not, yielding “21 hours ago”.
 The relative time between `x` and now `N` is:
@@ -73,12 +73,12 @@ day    |                    b  |          a            |        N              |
 
 ```
 
-Let's assume now (`N`) is *Mar 23, 9 AM*.
+Let's assume now (`N`) is _Mar 23, 9 AM_.
 
-|                       | relative-time  | moment.js       |
-| --------------------- | -------------- | --------------- |
-| *Mar 22, 11 AM* (`a`) | `"yesterday"`  | `"a day ago"`   |
-| *Mar 21, 8 PM* (`b`)  | `"2 days ago"` | `"a day ago"` ❓ |
+|                       | relative-time  | moment.js        |
+| --------------------- | -------------- | ---------------- |
+| _Mar 22, 11 AM_ (`a`) | `"yesterday"`  | `"a day ago"`    |
+| _Mar 21, 8 PM_ (`b`)  | `"2 days ago"` | `"a day ago"` ❓ |
 
 Note `relative-time` checks for the actual day change instead of counting on approximate number of hours to turn the unit.
 
@@ -90,14 +90,14 @@ day  | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | |
 mo.  |       d                  c|b   a                         N|
 ```
 
-Let's assume now (`N`) is *Mar 31*.
+Let's assume now (`N`) is _Mar 31_.
 
-|                | relative-time   | moment.js          |
-| -------------- | --------------- | ------------------ |
-| *Mar 5* (`a`)  | `"26 days ago"` | `"a month ago"` ❓  |
-| *Mar 1* (`b`)  | `"30 days ago"` | `"a month ago"` ❓  |
-| *Feb 28* (`c`) | `"last month"`  | `"a month ago"`    |
-| *Feb 9* (`d`)  | `"last month"`  | `"2 months ago"` ❓ |
+|                | relative-time   | moment.js           |
+| -------------- | --------------- | ------------------- |
+| _Mar 5_ (`a`)  | `"26 days ago"` | `"a month ago"` ❓  |
+| _Mar 1_ (`b`)  | `"30 days ago"` | `"a month ago"` ❓  |
+| _Feb 28_ (`c`) | `"last month"`  | `"a month ago"`     |
+| _Feb 9_ (`d`)  | `"last month"`  | `"2 months ago"` ❓ |
 
 Note `relative-time` checks for the actual month change instead of counting on approximate number of days to turn the unit.
 
@@ -109,12 +109,12 @@ Note `relative-time` checks for the actual month change instead of counting on a
 import RelativeTime from "relative-time";
 
 const relativeTime = new RelativeTime();
-const threeHoursAgo = Temporal.Now.plainDateTimeISO().subtract({hours: 3});
+const threeHoursAgo = Temporal.Now.plainDateTimeISO().subtract({ hours: 3 });
 console.log(relativeTime.format(threeHoursAgo));
 // > 3 hours ago
 
 const relativeTimeInPortuguese = new RelativeTime("pt");
-const oneHourAgo = Temporal.Now.plainDateTimeISO().subtract({hours: 1});
+const oneHourAgo = Temporal.Now.plainDateTimeISO().subtract({ hours: 1 });
 console.log(relativeTimeInPortuguese.format(oneHourAgo));
 // > há 1 hora
 ```
@@ -122,33 +122,25 @@ console.log(relativeTimeInPortuguese.format(oneHourAgo));
 ### Time zone support
 
 When you need to evaluate relative time in a different IANA time zone, create a
-`Temporal.ZonedDateTime` in that zone before calling `format`. The example below
-assumes that "now" is `2016-04-10T12:00:00Z`:
+`Temporal.ZonedDateTime` in that zone before calling `format`.
 
-|      | UTC                  | America/Los_Angeles             | Europe/Berlin                                            |
-| ---- | -------------------- | ------------------------------- | -------------------------------------------------------- |
-| date | 2016-04-10T00:00:00Z | 2016-04-09 17:00:00 GMT-7 (PDT) | 2016-04-10 02:00:00 GMT+2 (Central European Summer Time) |
-| now  | 2016-04-10T12:00:00Z | 2016-04-10 05:00:00 GMT-7 (PDT) | 2016-04-10 14:00:00 GMT+2 (Central European Summer Time) |
+|      | America/Los_Angeles             | Europe/Berlin                                            |
+| ---- | ------------------------------- | -------------------------------------------------------- |
+| date | 2016-04-09 17:00:00 GMT-7 (PDT) | 2016-04-10 02:00:00 GMT+2 (Central European Summer Time) |
+| now  | 2016-04-10 05:00:00 GMT-7 (PDT) | 2016-04-10 14:00:00 GMT+2 (Central European Summer Time) |
 
 ```js
-const now = Temporal.ZonedDateTime.from("2016-04-10T12:00:00[UTC]");
-
-// Target: 2016-04-09 17:00:00 GMT-7 (PDT)
-// Now: 2016-04-10 05:00:00 GMT-7 (PDT)
 const losAngelesDate = Temporal.ZonedDateTime.from(
   "2016-04-09T17:00:00-07:00[America/Los_Angeles]"
 );
-relativeTime.format(losAngelesDate, {now});
+relativeTime.format(losAngelesDate, { now: losAngelesNow });
 // > "yesterday"
 
-// Target: 2016-04-10 14:00:00 GMT+2 (Central European Summer Time)
-// Now: 2016-04-10 14:00:00 GMT+2 (Central European Summer Time)
 const berlinDate = Temporal.ZonedDateTime.from(
-  "2016-04-10T14:00:00+02:00[Europe/Berlin]"
+  "2016-04-10T02:00:00+02:00[Europe/Berlin]"
 );
-relativeTime.format(berlinDate, {now});
+relativeTime.format(berlinDate, { now: berlinNow });
 // > "12 hours ago"
-
 ```
 
 ## API
@@ -205,7 +197,7 @@ Returns the formatted relative time string given `date` and `options`.
 
 ### Relative time
 
-In this library, we'll define relative time as what makes sense for expressions like "now", "2 days ago", "in 3 months", "last year", "yesterday", and so on. In a more formal definition, *relative time* is an approximate date distance given a unit. This is, *relative time* is the date distance of *a* and *b* ± error, where error < unit. Please, see the below examples of each unit for clarity.
+In this library, we'll define relative time as what makes sense for expressions like "now", "2 days ago", "in 3 months", "last year", "yesterday", and so on. In a more formal definition, _relative time_ is an approximate date distance given a unit. This is, _relative time_ is the date distance of _a_ and _b_ ± error, where error < unit. Please, see the below examples of each unit for clarity.
 
 #### second
 
