@@ -143,7 +143,7 @@ export default class RelativeTime {
 
     const diff = Object.create(null);
     const absDiff = Object.create(null);
-    const diffUnits = ["year", "month", "day", "hour", "minute", "second"];
+    const diffUnits = ["year", "month", /* "week", */ "day", "hour", "minute", "second"];
 
     diffUnits.forEach(function(currentUnit) {
       defineCachedGetter(diff, currentUnit, function() {
@@ -168,6 +168,8 @@ RelativeTime.bestFit = function(absDiff) {
   switch (true) {
     case absDiff.year > 0 && absDiff.month > threshold.month: return "year";
     case absDiff.month > 0 && absDiff.day > threshold.day: return "month";
+    // case absDiff.month > 0 && absDiff.week > threshold.week: return "month";
+    // case absDiff.week > 0 && absDiff.day > threshold.day: return "week";
     case absDiff.day > 0 && absDiff.hour > threshold.hour: return "day";
     case absDiff.hour > 0 && absDiff.minute > threshold.minute: return "hour";
     case absDiff.minute > 0 && absDiff.second > threshold.second: return "minute";
@@ -177,6 +179,7 @@ RelativeTime.bestFit = function(absDiff) {
 
 RelativeTime.threshold = {
   month: 2,
+  // week: 4,
   day: 6,
   hour: 6,
   minute: 59,
@@ -203,7 +206,7 @@ RelativeTime.initializeFormatters = function(localesOrFormatter, options) {
 };
 
 function createFormatterMap(formatter) {
-  return ["second", "minute", "hour", "day", "month", "year"].reduce(function(map, unit) {
+  return ["second", "minute", "hour", "day", /* "week", */ "month", "year"].reduce(function(map, unit) {
     map[unit] = function(value) {
       return formatter.format(value, unit);
     };
