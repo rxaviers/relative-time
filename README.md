@@ -125,13 +125,13 @@ When you need to evaluate relative time in a different IANA time zone, create a
 `Temporal.ZonedDateTime` in that zone before calling `format`. The example below
 assumes that "now" is `2016-04-10T12:00:00Z`:
 
-|      | UTC                  | America/Los_Angeles             | Europe/Berlin                            |
-| ---- | -------------------- | ------------------------------- | ---------------------------------------- |
-| date | 2016-04-10T00:00:00Z | 2016-04-09 17:00:00 GMT-7 (PDT) | 2016-04-10 14:00:00 GMT+2 (Central European Summer Time) |
+|      | UTC                  | America/Los_Angeles             | Europe/Berlin                                            |
+| ---- | -------------------- | ------------------------------- | -------------------------------------------------------- |
+| date | 2016-04-10T00:00:00Z | 2016-04-09 17:00:00 GMT-7 (PDT) | 2016-04-10 02:00:00 GMT+2 (Central European Summer Time) |
 | now  | 2016-04-10T12:00:00Z | 2016-04-10 05:00:00 GMT-7 (PDT) | 2016-04-10 14:00:00 GMT+2 (Central European Summer Time) |
 
 ```js
-const now = Temporal.ZonedDateTime.from("2016-04-10T12:00:00Z[UTC]");
+const now = Temporal.ZonedDateTime.from("2016-04-10T12:00:00[UTC]");
 
 // Target: 2016-04-09 17:00:00 GMT-7 (PDT)
 // Now: 2016-04-10 05:00:00 GMT-7 (PDT)

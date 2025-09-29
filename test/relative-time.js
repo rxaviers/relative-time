@@ -177,6 +177,14 @@ describe("relative-time", function() {
       }).to.throw(TypeError, /Temporal\.ZonedDateTime/);
     });
 
+    it("should reject ZonedDateTime now values from a different time zone", function() {
+      const losAngelesDate = zoned("2016-04-10T05:00:00-07:00[America/Los_Angeles]");
+      const newYorkNow = zoned("2016-04-10T08:00:00-04:00[America/New_York]");
+      expect(function() {
+        relativeTime.format(losAngelesDate, {now: newYorkNow});
+      }).to.throw(TypeError, /same time zone/);
+    });
+
     it("should use Temporal.Now when now is omitted for PlainDateTime targets", function() {
       const stubNow = plain("2016-04-10T12:00:00");
       const originalPlain = global.Temporal.Now.plainDateTimeISO;

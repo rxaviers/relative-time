@@ -58,7 +58,11 @@ function resolveZonedNow(now, Temporal, targetZone) {
     throw new TypeError("Unsupported now value; expected Temporal.ZonedDateTime");
   }
 
-  return now.withTimeZone(targetZone);
+  if (now.timeZoneId !== targetZone) {
+    throw new TypeError("Unsupported now value; expected Temporal.ZonedDateTime in the same time zone as the target date");
+  }
+
+  return now;
 }
 
 function differenceInUnit(now, target, unit) {
