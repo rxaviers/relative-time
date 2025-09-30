@@ -1,6 +1,11 @@
-const root = typeof global !== "undefined" ? global :
-  typeof window !== "undefined" ? window :
-  typeof self !== "undefined" ? self : {};
+const root =
+  typeof global !== "undefined"
+    ? global
+    : typeof window !== "undefined"
+      ? window
+      : typeof self !== "undefined"
+        ? self
+        : {};
 
 function getTemporal() {
   const Temporal = root.Temporal;
@@ -19,34 +24,42 @@ function defineCachedGetter(object, property, compute) {
       Object.defineProperty(object, property, {
         configurable: true,
         enumerable: true,
-        value
+        value,
       });
       return value;
-    }
+    },
   });
 }
 
 function isTemporalZonedDateTime(value, Temporal) {
-  return Boolean(Temporal.ZonedDateTime && value instanceof Temporal.ZonedDateTime);
+  return Boolean(
+    Temporal.ZonedDateTime && value instanceof Temporal.ZonedDateTime
+  );
 }
 
 function isTemporalPlainDateTime(value, Temporal) {
-  return Boolean(Temporal.PlainDateTime && value instanceof Temporal.PlainDateTime);
+  return Boolean(
+    Temporal.PlainDateTime && value instanceof Temporal.PlainDateTime
+  );
 }
 
 function resolvePlainNow(now, Temporal, target) {
   if (now === undefined || now === null) {
     const current = Temporal.Now.plainDateTimeISO();
-    return typeof current.withCalendar === "function" && target.calendar ?
-      current.withCalendar(target.calendar) : current;
+    return typeof current.withCalendar === "function" && target.calendar
+      ? current.withCalendar(target.calendar)
+      : current;
   }
 
   if (!isTemporalPlainDateTime(now, Temporal)) {
-    throw new TypeError("Unsupported now value; expected Temporal.PlainDateTime");
+    throw new TypeError(
+      "Unsupported now value; expected Temporal.PlainDateTime"
+    );
   }
 
-  return typeof now.withCalendar === "function" && target.calendar ?
-    now.withCalendar(target.calendar) : now;
+  return typeof now.withCalendar === "function" && target.calendar
+    ? now.withCalendar(target.calendar)
+    : now;
 }
 
 function resolveZonedNow(now, Temporal, targetZone) {
@@ -55,11 +68,15 @@ function resolveZonedNow(now, Temporal, targetZone) {
   }
 
   if (!isTemporalZonedDateTime(now, Temporal)) {
-    throw new TypeError("Unsupported now value; expected Temporal.ZonedDateTime");
+    throw new TypeError(
+      "Unsupported now value; expected Temporal.ZonedDateTime"
+    );
   }
 
   if (now.timeZoneId !== targetZone) {
-    throw new TypeError("Unsupported now value; expected Temporal.ZonedDateTime in the same time zone as the target date");
+    throw new TypeError(
+      "Unsupported now value; expected Temporal.ZonedDateTime in the same time zone as the target date"
+    );
   }
 
   return now;
@@ -67,8 +84,10 @@ function resolveZonedNow(now, Temporal, targetZone) {
 
 function differenceInUnit(now, target, unit) {
   if (unit === "year" || unit === "month") {
-    const startDate = typeof now.toPlainDate === "function" ? now.toPlainDate() : now;
-    const endDate = typeof target.toPlainDate === "function" ? target.toPlainDate() : target;
+    const startDate =
+      typeof now.toPlainDate === "function" ? now.toPlainDate() : now;
+    const endDate =
+      typeof target.toPlainDate === "function" ? target.toPlainDate() : target;
     const yearDelta = endDate.year - startDate.year;
 
     if (unit === "year") {
@@ -79,12 +98,14 @@ function differenceInUnit(now, target, unit) {
   }
 
   if (unit === "day") {
-    const startDate = typeof now.toPlainDate === "function" ? now.toPlainDate() : now;
-    const endDate = typeof target.toPlainDate === "function" ? target.toPlainDate() : target;
+    const startDate =
+      typeof now.toPlainDate === "function" ? now.toPlainDate() : now;
+    const endDate =
+      typeof target.toPlainDate === "function" ? target.toPlainDate() : target;
     const duration = startDate.until(endDate, {
       largestUnit: unit,
       smallestUnit: unit,
-      roundingMode: "trunc"
+      roundingMode: "trunc",
     });
     return duration.days;
   }
@@ -93,7 +114,7 @@ function differenceInUnit(now, target, unit) {
     const duration = now.until(target, {
       largestUnit: unit,
       smallestUnit: unit,
-      roundingMode: "trunc"
+      roundingMode: "trunc",
     });
     let hours = duration.hours;
 
@@ -101,7 +122,7 @@ function differenceInUnit(now, target, unit) {
       const minutes = now.until(target, {
         largestUnit: "minute",
         smallestUnit: "minute",
-        roundingMode: "trunc"
+        roundingMode: "trunc",
       });
 
       if (minutes.minutes < 0) {
@@ -115,7 +136,7 @@ function differenceInUnit(now, target, unit) {
   const duration = now.until(target, {
     largestUnit: unit,
     smallestUnit: unit,
-    roundingMode: "trunc"
+    roundingMode: "trunc",
   });
   return duration[unit + "s"];
 }
@@ -125,7 +146,7 @@ export default class RelativeTime {
     this.formatters = RelativeTime.initializeFormatters(...arguments);
   }
 
-  format(date, {unit = "best-fit", now} = {}) {
+  format(date, { unit = "best-fit", now } = {}) {
     const Temporal = getTemporal();
     let target;
     let resolvedNow;
@@ -138,19 +159,28 @@ export default class RelativeTime {
       target = date;
       resolvedNow = resolvePlainNow(now, Temporal, target);
     } else {
-      throw new TypeError("Unsupported date value; expected Temporal.ZonedDateTime or Temporal.PlainDateTime");
+      throw new TypeError(
+        "Unsupported date value; expected Temporal.ZonedDateTime or Temporal.PlainDateTime"
+      );
     }
 
     const diff = Object.create(null);
     const absDiff = Object.create(null);
-    const diffUnits = ["year", "month", /* "week", */ "day", "hour", "minute", "second"];
+    const diffUnits = [
+      "year",
+      "month",
+      /* "week", */ "day",
+      "hour",
+      "minute",
+      "second",
+    ];
 
-    diffUnits.forEach(function(currentUnit) {
-      defineCachedGetter(diff, currentUnit, function() {
+    diffUnits.forEach(function (currentUnit) {
+      defineCachedGetter(diff, currentUnit, function () {
         return differenceInUnit(resolvedNow, target, currentUnit);
       });
 
-      defineCachedGetter(absDiff, currentUnit, function() {
+      defineCachedGetter(absDiff, currentUnit, function () {
         return Math.abs(diff[currentUnit]);
       });
     });
@@ -163,17 +193,23 @@ export default class RelativeTime {
   }
 }
 
-RelativeTime.bestFit = function(absDiff) {
+RelativeTime.bestFit = function (absDiff) {
   const threshold = this.threshold;
   switch (true) {
-    case absDiff.year > 0 && absDiff.month > threshold.month: return "year";
-    case absDiff.month > 0 && absDiff.day > threshold.day: return "month";
+    case absDiff.year > 0 && absDiff.month > threshold.month:
+      return "year";
+    case absDiff.month > 0 && absDiff.day > threshold.day:
+      return "month";
     // case absDiff.month > 0 && absDiff.week > threshold.week: return "month";
     // case absDiff.week > 0 && absDiff.day > threshold.day: return "week";
-    case absDiff.day > 0 && absDiff.hour > threshold.hour: return "day";
-    case absDiff.hour > 0 && absDiff.minute > threshold.minute: return "hour";
-    case absDiff.minute > 0 && absDiff.second > threshold.second: return "minute";
-    default: return "second";
+    case absDiff.day > 0 && absDiff.hour > threshold.hour:
+      return "day";
+    case absDiff.hour > 0 && absDiff.minute > threshold.minute:
+      return "hour";
+    case absDiff.minute > 0 && absDiff.second > threshold.second:
+      return "minute";
+    default:
+      return "second";
   }
 };
 
@@ -183,31 +219,53 @@ RelativeTime.threshold = {
   day: 6,
   hour: 6,
   minute: 59,
-  second: 59
+  second: 59,
 };
 
-RelativeTime.initializeFormatters = function(localesOrFormatter, options) {
+RelativeTime.initializeFormatters = function (localesOrFormatter, options) {
   let locales = localesOrFormatter;
   let formatOptions = options;
 
-  if (localesOrFormatter && typeof localesOrFormatter.format === "function" &&
-      typeof localesOrFormatter.resolvedOptions === "function") {
+  if (
+    localesOrFormatter &&
+    typeof localesOrFormatter.format === "function" &&
+    typeof localesOrFormatter.resolvedOptions === "function"
+  ) {
     return createFormatterMap(localesOrFormatter);
   }
 
-  if (localesOrFormatter && typeof localesOrFormatter === "object" && !Array.isArray(localesOrFormatter)) {
+  if (
+    localesOrFormatter &&
+    typeof localesOrFormatter === "object" &&
+    !Array.isArray(localesOrFormatter)
+  ) {
     formatOptions = localesOrFormatter;
     locales = undefined;
   }
 
-  return createFormatterMap(new Intl.RelativeTimeFormat(locales, Object.assign({
-    numeric: "auto"
-  }, formatOptions)));
+  return createFormatterMap(
+    new Intl.RelativeTimeFormat(
+      locales,
+      Object.assign(
+        {
+          numeric: "auto",
+        },
+        formatOptions
+      )
+    )
+  );
 };
 
 function createFormatterMap(formatter) {
-  return ["second", "minute", "hour", "day", /* "week", */ "month", "year"].reduce(function(map, unit) {
-    map[unit] = function(value) {
+  return [
+    "second",
+    "minute",
+    "hour",
+    "day",
+    /* "week", */ "month",
+    "year",
+  ].reduce(function (map, unit) {
+    map[unit] = function (value) {
       return formatter.format(value, unit);
     };
     return map;
