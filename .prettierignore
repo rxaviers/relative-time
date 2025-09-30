@@ -1,0 +1,11 @@
+# Build artifacts
+/dist/
+
+# Package manager directories
+/node_modules/
+
+# Generated lock files
+package-lock.json
+
+# Misc
+coverage/
