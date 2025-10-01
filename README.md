@@ -1,229 +1,227 @@
 # Relative Time
 
-Formats Temporal dates to relative time strings (e.g., "3 hours ago") using the
-same standards that ship in modern JavaScript engines.
+Formats JavaScript dates to localized **relative time strings** (e.g., "3 hours ago", "yesterday", "in 2 weeks").
+It selects a **best‑fit unit** for you (seconds → minutes → hours → days → weeks → months → years) **and** uses the platform’s `Intl.RelativeTimeFormat` for localization.
 
-Pass a [`Temporal.PlainDateTime`](https://tc39.es/proposal-temporal/docs/plaindatetime.html)
-when the comparison does not depend on a particular time zone, or a
-[`Temporal.ZonedDateTime`](https://tc39.es/proposal-temporal/docs/zoneddatetime.html)
-to evaluate the difference within an explicit IANA zone.
+- **High‑level**: `RelativeTime` → _resolve unit_ → format
+- **Low‑level**: `RelativeTimeResolver` → _resolve only_ the `{ value, unit }`
 
-Built entirely on [Temporal](https://tc39.es/proposal-temporal/) for duration
-calculations and the native [Intl.RelativeTimeFormat][] API (ECMA-402) for
-localization, so you get spec-compliant results without extra runtime
-dependencies.
+Built on **Temporal** for precise date math and **Intl.RelativeTimeFormat** for i18n. That means you get the **same CLDR data** your runtime ships with—no locale bundles to download.
 
-The usage examples below assume [Temporal](https://tc39.es/proposal-temporal/) is available (either natively or via the
-[@js-temporal/polyfill](https://github.com/js-temporal/temporal-polyfill)).
+> **Why not just `Intl.RelativeTimeFormat`?**
+> `Intl.RelativeTimeFormat` is intentionally **low level**: you must choose the unit yourself (e.g., day vs week) and then ask it to format the pair `{value, unit}`. This library adds the **unit resolver** layer on top—by design that’s out of scope for the built‑in API. (see more details at [tc39/proposal-intl-relative-time#14](https://github.com/tc39/proposal-intl-relative-time/issues/14))
 
-[Unicode CLDR]: http://cldr.unicode.org/
-[Intl.RelativeTimeFormat]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Intl/RelativeTimeFormat
+## Install
 
-## Why
-
-### Built on native web standards
-
-Temporal handles the date math while [Intl.RelativeTimeFormat][] provides the
-localized strings, so the library always uses the same Unicode CLDR data that
-ships with the runtime. There are no custom heuristics, shimmed tokens, or
-vendor-specific formatting rules to maintain.
-
-Standard APIs also mean the examples in this README run anywhere Temporal is
-available (including via the official polyfill) and benefit from future engine
-improvements automatically.
-
-### Time zone support
-
-Temporal.ZonedDateTime inputs preserve the offset and daylight-saving rules for
-each region, so the formatter stays accurate even when comparing the same instant
-across different cities. The chart below shows how two zones perceive the same
-event (`x`) and “now” (`N`).
-
-```
-hr.  | | | | | | | | | | | | | | | | | | | | | | | |
-       x . . . . . . . . . . . . . . . . . . | . N
-EDT      <------------ Mar 21 -----------> | <-----> (Mar 22)
-PDT      <----------------- Mar 21 ---------------->
+```bash
+npm install relative-time
+# If your environment doesn't yet support Temporal:
+npm install @js-temporal/polyfill
 ```
 
-New York crosses midnight between `x` and `N`, so the event reads as “yesterday”,
-but Los Angeles does not, yielding “21 hours ago”.
-The relative time between `x` and now `N` is:
+> This library expects **Temporal**. Use it where Temporal is available (or load the official polyfill).
 
-| time zone           | relative-time result |
-| ------------------- | -------------------- |
-| America/New_York    | `"yesterday"`        |
-| America/Los_Angeles | `"21 hours ago"`     |
-
-### Better results than other libraries
-
-Other open-source relative time utilities rely on hand-tuned thresholds that can
-misreport day or month boundaries. Because this project delegates that logic to
-Temporal and CLDR data, it keeps human language aligned with calendar reality.
-The comparisons below highlight real cases where Moment.js and similar libraries
-fall short.
-
-#### day
-
-```
-       Mar 21, 00:00           Mar 22, 00:00           Mar 23, 00:00           Mar 24, 00:00
-hr.  | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | |
-day    |                    b  |          a            |        N              |
-       Mar 21                  Mar 22                  Mar 23                  Mar 24
-
-```
-
-Let's assume now (`N`) is _Mar 23, 9 AM_.
-
-|                       | relative-time  | moment.js        |
-| --------------------- | -------------- | ---------------- |
-| _Mar 22, 11 AM_ (`a`) | `"yesterday"`  | `"a day ago"`    |
-| _Mar 21, 8 PM_ (`b`)  | `"2 days ago"` | `"a day ago"` ❓ |
-
-Note `relative-time` checks for the actual day change instead of counting on approximate number of hours to turn the unit.
-
-#### month
-
-```
-    Feb 1                        Mar 1                           Apr 1
-day  | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | |
-mo.  |       d                  c|b   a                         N|
-```
-
-Let's assume now (`N`) is _Mar 31_.
-
-|                | relative-time   | moment.js           |
-| -------------- | --------------- | ------------------- |
-| _Mar 5_ (`a`)  | `"26 days ago"` | `"a month ago"` ❓  |
-| _Mar 1_ (`b`)  | `"30 days ago"` | `"a month ago"` ❓  |
-| _Feb 28_ (`c`) | `"last month"`  | `"a month ago"`     |
-| _Feb 9_ (`d`)  | `"last month"`  | `"2 months ago"` ❓ |
-
-Note `relative-time` checks for the actual month change instead of counting on approximate number of days to turn the unit.
-
-## Usage
-
-    npm install --save relative-time
+## Quick start
 
 ```js
-import RelativeTime, { RelativeTimeResolver } from "relative-time";
+import RelativeTime from "relative-time";
+// If needed:
+// import { Temporal } from "@js-temporal/polyfill";
 
-const relativeTime = new RelativeTime();
+const rt = new RelativeTime(); // locale inferred from the runtime
+
 const threeHoursAgo = Temporal.Now.plainDateTimeISO().subtract({ hours: 3 });
-console.log(relativeTime.format(threeHoursAgo));
-// > 3 hours ago
+rt.format(threeHoursAgo);
+// Output: "3 hours ago"
 
-const relativeTimeInPortuguese = new RelativeTime("pt");
+const pt = new RelativeTime("pt");
 const oneHourAgo = Temporal.Now.plainDateTimeISO().subtract({ hours: 1 });
-console.log(relativeTimeInPortuguese.format(oneHourAgo));
-// > há 1 hora
-
-// Use the resolver when you need just the unit/value
-const resolver = new RelativeTimeResolver();
-const event = Temporal.Now.plainDateTimeISO().subtract({ minutes: 3 });
-const { value, unit } = resolver.resolve(event); // { value: -3, unit: "minute" }
-// You can format this yourself or with Intl.RelativeTimeFormat
-new Intl.RelativeTimeFormat(undefined, { numeric: "auto" }).format(value, unit);
-// > 3 minutes ago
+pt.format(oneHourAgo);
+// Output: "há 1 hora"
 ```
 
-### Time zone support
-
-When you need to evaluate relative time in a different IANA time zone, create a
-`Temporal.ZonedDateTime` in that zone before calling `format`.
-
-|      | America/Los_Angeles             | Europe/Berlin                                            |
-| ---- | ------------------------------- | -------------------------------------------------------- |
-| date | 2016-04-09 17:00:00 GMT-7 (PDT) | 2016-04-10 02:00:00 GMT+2 (Central European Summer Time) |
-| now  | 2016-04-10 05:00:00 GMT-7 (PDT) | 2016-04-10 14:00:00 GMT+2 (Central European Summer Time) |
+### Time‑zone aware
 
 ```js
-const losAngelesDate = Temporal.ZonedDateTime.from(
+const rt = new RelativeTime();
+
+const laDate = Temporal.ZonedDateTime.from(
   "2016-04-09T17:00:00-07:00[America/Los_Angeles]"
 );
-relativeTime.format(losAngelesDate, { now: losAngelesNow });
-// > "yesterday"
+rt.format(laDate);
+// Output: "yesterday"
+// Assuming now is "2016-04-10T05:00:00-07:00[America/Los_Angeles]"
 
 const berlinDate = Temporal.ZonedDateTime.from(
   "2016-04-10T02:00:00+02:00[Europe/Berlin]"
 );
-relativeTime.format(berlinDate, { now: berlinNow });
-// > "12 hours ago"
+rt.format(berlinDate, { now: berlinNow });
+// Output: "12 hours ago"
+// Assuming now is "2016-04-10T14:00:00+02:00[Europe/Berlin]"
+```
+
+Use `Temporal.PlainDateTime` when you want to **ignore time‑zone rules** (local calendar math), and `Temporal.ZonedDateTime` when offset and DST **must** be respected.
+
+### Resolver only
+
+Use the resolver when you need just the unit/value.
+
+```js
+import { RelativeTimeResolver } from "relative-time";
+
+const resolver = new RelativeTimeResolver();
+const event = Temporal.Now.plainDateTimeISO().subtract({ minutes: 3 });
+const { value, unit } = resolver.resolve(event);
+// Output: { value: -3, unit: "minute" }
+
+// You can format this yourself or with Intl.RelativeTimeFormat
+new Intl.RelativeTimeFormat(undefined, { numeric: "auto" }).format(value, unit);
+// Output: "3 minutes ago"
 ```
 
 ## API
 
-### RelativeTime (default export)
+### `class RelativeTime` (default export)
 
-#### `format(date{, options})`
-
-### date
-
-A [Temporal.PlainDateTime](https://tc39.es/proposal-temporal/docs/plaindatetime.html)
-or [Temporal.ZonedDateTime](https://tc39.es/proposal-temporal/docs/zoneddatetime.html)
-representing the target moment. Use a plain date-time when the relative distance
-should ignore time zone rules (for example, comparing two local calendar events)
-and a zoned date-time when offset and daylight-saving changes matter.
-
-#### options.unit (optional)
-
-Unit for formatting. If the unit is not provided, `"best-fit"` is used.
-
-- `"best-fit"` (default)
-- `"second"`
-- `"minute"`
-- `"hour"`
-- `"day"`
-- `"month"`
-- `"year"`
-
-#### The `"best-fit"` unit
-
-It automatically picks a unit based on the relative time scale using thresholds. In short:
-
-- If `absDiff.year > 0 && absDiff.month > threshold.month` → `"year"`
-- If `absDiff.month > 0 && absDiff.day > threshold.day` → `"month"`
-- If `absDiff.day > 0 && absDiff.hour > threshold.hour` → `"day"`
-- If `absDiff.hour > 0 && absDiff.minute > threshold.minute` → `"hour"`
-- If `absDiff.minute > 0 && absDiff.second > threshold.second` → `"minute"`
-- Otherwise → `"second"`
-
-#### options.now (optional)
-
-A [Temporal.PlainDateTime](https://tc39.es/proposal-temporal/docs/plaindatetime.html)
-or [Temporal.ZonedDateTime](https://tc39.es/proposal-temporal/docs/zoneddatetime.html)
-representing the reference point used to compute the relative difference. When
-omitted, the current moment is retrieved with
-[`Temporal.Now`](https://tc39.es/proposal-temporal/docs/now.html) and evaluated as
-either a plain or zoned date-time to match the type of `date`. Passing any other
-type throws a `TypeError`.
-
-#### Return
-
-Returns the formatted relative time string given `date` and `options`.
-
-### RelativeTimeResolver (named export)
-
-Resolves the relative difference without formatting, returning `{ value, unit }`.
+High‑level formatter that **resolves the unit** and **formats** the string.
 
 #### Constructor
 
-`new RelativeTimeResolver(options?)`
+```ts
+new RelativeTime(
+  locales?: string | string[],
+  options?: Intl.RelativeTimeFormatOptions
+)
+```
 
-- `options.threshold` — override the thresholds used by best-fit.
-- `options.units` — override the units considered by the resolver.
+- `locales` — same semantics as other `Intl` constructors (e.g., `"en"`, `["fr", "en"]`).
+- `options` — forwarded to `Intl.RelativeTimeFormat` (e.g., `{ style: "short", numeric: "auto" }`).
+  Tip: `numeric: "auto"` yields strings like “yesterday/tomorrow”; `numeric: "always"` gives “1 day ago / in 1 day”.
 
-#### `resolve(date, { now, unit = "best-fit" } = {})`
+#### `format(date, options?) => string`
 
-- `date` — `Temporal.PlainDateTime` or `Temporal.ZonedDateTime`.
-- `now` — must match the `date` type; for zoned dates, the time zone must match. If omitted, `Temporal.Now` is used accordingly.
-- `unit` —
-  - `"best-fit"` (default): chooses a unit using thresholds and returns `{ unit, value }`.
-  - Any supported unit (`second`, `minute`, `hour`, `day`, `month`, `year`): returns `{ unit, value }` using that exact unit (signed, truncated difference). The hour edge-case is handled so very recent past returns `-1` hour instead of `0` hours.
+```ts
+format(
+  date: Temporal.PlainDateTime | Temporal.ZonedDateTime,
+  options?: {
+    now?: Temporal.PlainDateTime | Temporal.ZonedDateTime,
+    unit?: "best-fit" | "second" | "minute" | "hour" | "day" | "week" | "month" | "year"
+  }
+): string
+```
 
-#### Return
+- `date` — the target moment.
+- `options.now` — reference moment (defaults to “now”, matched to `date`’s type).
+- `options.unit` — force a specific unit or let the library decide with `"best-fit"` (default).
 
-An object `{ value, unit }` with the signed difference and chosen unit.
+**How “best‑fit” works (conceptually)**
+
+The resolver promotes units using _calendar boundaries_ and _configurable step-up thresholds_ (e.g., sec → min → hr → day → month). If the difference crosses a calendar day, you'll get _"yesterday"_ (instead of "20 hours ago"). But if it crosses midnight _without_ clearing the threshold, it stays in hours, e.g., _"3 hours ago"_ (instead of "yesterday").
+
+---
+
+### `class RelativeTimeResolver` (named export)
+
+Low‑level **unit chooser**. Use it if you want the `{ value, unit }` pair to feed into your own formatter (including `Intl.RelativeTimeFormat` directly).
+
+#### Constructor
+
+```ts
+new RelativeTimeResolver();
+```
+
+#### `resolve(date, options?) => { value: number, unit: RTFUnit }`
+
+```ts
+type RTFUnit = "second" | "minute" | "hour" | "day" | "week" | "month" | "year";
+
+resolve(
+  date: Temporal.PlainDateTime | Temporal.ZonedDateTime,
+  options?: {
+    now?: Temporal.PlainDateTime | Temporal.ZonedDateTime,
+    unit?: "best-fit" | RTFUnit  // "best-fit" (default) or force a unit
+  }
+): { value: number; unit: RTFUnit }
+```
+
+**Example**
+
+```js
+import { RelativeTimeResolver } from "relative-time";
+
+const r = new RelativeTimeResolver();
+const target = Temporal.Now.plainDateTimeISO().add({ days: 6, hours: 5 });
+
+const { value, unit } = r.resolve(target); // e.g., { value: 1, unit: "week" }
+
+new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(value, unit);
+// "next week"
+```
+
+## Using `Intl.RelativeTimeFormat` options
+
+You can customize style and numeric behavior at construction:
+
+```js
+const rtShort = new RelativeTime("en", { style: "short", numeric: "always" });
+rtShort.format(Temporal.Now.plainDateTimeISO().subtract({ day: 1 }));
+// "1 day ago"
+```
+
+> `RelativeTime` is literally a thin wrapper over `Intl.RelativeTimeFormat` once a `{ value, unit }` has been resolved. You get the same pluralization and grammar your engine provides.
+
+## When to use which
+
+| You need…                         | Use                                | Why                                                           |
+| --------------------------------- | ---------------------------------- | ------------------------------------------------------------- |
+| “Just give me a localized string” | `RelativeTime`                     | Picks a sensible unit and formats it                          |
+| `{ value, unit }` only            | `RelativeTimeResolver`             | Feed another formatter, build custom UIs, analytics, etc.     |
+| Full control over unit and i18n   | `Intl.RelativeTimeFormat` directly | Low‑level by design; no unit resolution provided by the spec. |
+
+## Examples
+
+**Force a unit**
+
+```js
+const rt = new RelativeTime("en");
+rt.format(Temporal.Now.plainDateTimeISO().subtract({ hours: 27 }), {
+  unit: "hour",
+});
+// "27 hours ago"
+```
+
+**Different locales**
+
+```js
+new RelativeTime(["fr", "en"]).format(
+  Temporal.Now.plainDateTimeISO().add({ minutes: 5 })
+);
+// "dans 5 minutes"
+```
+
+## Notes on accuracy
+
+This project uses **Temporal** for differences (calendar‑aware) and **`Intl.RelativeTimeFormat`** for localization. That combination prevents common errors around DST, month lengths, and week boundaries that “approximate threshold” libraries can exhibit.
+
+## Browser / runtime support
+
+- Works wherever **Temporal** is available; otherwise include **`@js-temporal/polyfill`**.
+- Uses your runtime’s **`Intl.RelativeTimeFormat`**, which has wide support in modern environments.
+
+## FAQ
+
+**Does this support quarters?**
+No—units are: `second`, `minute`, `hour`, `day`, `week`, `month`, `year`.
+
+**Why do I sometimes see “yesterday” instead of “1 day ago”?**
+That comes from `numeric: "auto"` in `Intl.RelativeTimeFormat`. Switch to `numeric: "always"` if you prefer numbers only.
+
+**How is this different from the TC39 proposal?**
+This library’s resolver is the high‑level part **omitted on purpose** from the `Intl.RelativeTimeFormat` spec; the built‑in API only formats a supplied `{ value, unit }`. See the historical discussion around “best‑fit” in the proposal repo.
+
+## Contributing
+
+PRs and issues welcome!
 
 ## Appendix
 
@@ -355,4 +353,4 @@ Note that (although not shown by the above ruler), the years distances doesn't m
 
 ## License
 
-MIT © [Rafael Xavier de Souza](http://rafael.xavier.blog.br)
+MIT © Rafael Xavier de Souza
