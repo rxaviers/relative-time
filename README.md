@@ -106,7 +106,7 @@ Note `relative-time` checks for the actual month change instead of counting on a
     npm install --save relative-time
 
 ```js
-import RelativeTime from "relative-time";
+import RelativeTime, { RelativeTimeResolver } from "relative-time";
 
 const relativeTime = new RelativeTime();
 const threeHoursAgo = Temporal.Now.plainDateTimeISO().subtract({ hours: 3 });
@@ -117,6 +117,14 @@ const relativeTimeInPortuguese = new RelativeTime("pt");
 const oneHourAgo = Temporal.Now.plainDateTimeISO().subtract({ hours: 1 });
 console.log(relativeTimeInPortuguese.format(oneHourAgo));
 // > há 1 hora
+
+// Use the resolver when you need just the unit/value
+const resolver = new RelativeTimeResolver();
+const event = Temporal.Now.plainDateTimeISO().subtract({ minutes: 3 });
+const { value, unit } = resolver.resolve(event); // { value: -3, unit: "minute" }
+// You can format this yourself or with Intl.RelativeTimeFormat
+new Intl.RelativeTimeFormat(undefined, { numeric: "auto" }).format(value, unit);
+// > 3 minutes ago
 ```
 
 ### Time zone support
@@ -145,7 +153,9 @@ relativeTime.format(berlinDate, { now: berlinNow });
 
 ## API
 
-### `format(date{, options})`
+### RelativeTime (default export)
+
+#### `format(date{, options})`
 
 ### date
 
@@ -155,7 +165,7 @@ representing the target moment. Use a plain date-time when the relative distance
 should ignore time zone rules (for example, comparing two local calendar events)
 and a zoned date-time when offset and daylight-saving changes matter.
 
-### options.unit (optional)
+#### options.unit (optional)
 
 Unit for formatting. If the unit is not provided, `"best-fit"` is used.
 
@@ -169,17 +179,16 @@ Unit for formatting. If the unit is not provided, `"best-fit"` is used.
 
 #### The `"best-fit"` unit
 
-It automatically picks a unit based on the relative time scale. Basically, it looks like this:
+It automatically picks a unit based on the relative time scale using thresholds. In short:
 
-- If `absDiffYears > 0 && absDiffMonths > threshold.month`, return `"year"`.
-- If `absDiffMonths > 0 && absDiffWeeks > threshold.week`, return `"month"`.
-- If `absDiffWeeks > 0 && absDiffDays > threshold.day`, return `"week"`.
-- If `absDiffDays > 0 && absDiffHours > threshold.hour`, return `"day"`.
-- If `absDiffHours > 0 && absDiffMinutes > threshold.minute`, return `"hour"`.
-- If `absDiffMinutes > 0 && absDiffSeconds > threshold.second`, return `"minutes"`.
-- Return `"second"`.
+- If `absDiff.year > 0 && absDiff.month > threshold.month` → `"year"`
+- If `absDiff.month > 0 && absDiff.day > threshold.day` → `"month"`
+- If `absDiff.day > 0 && absDiff.hour > threshold.hour` → `"day"`
+- If `absDiff.hour > 0 && absDiff.minute > threshold.minute` → `"hour"`
+- If `absDiff.minute > 0 && absDiff.second > threshold.second` → `"minute"`
+- Otherwise → `"second"`
 
-### options.now (optional)
+#### options.now (optional)
 
 A [Temporal.PlainDateTime](https://tc39.es/proposal-temporal/docs/plaindatetime.html)
 or [Temporal.ZonedDateTime](https://tc39.es/proposal-temporal/docs/zoneddatetime.html)
@@ -189,9 +198,32 @@ omitted, the current moment is retrieved with
 either a plain or zoned date-time to match the type of `date`. Passing any other
 type throws a `TypeError`.
 
-### Return
+#### Return
 
 Returns the formatted relative time string given `date` and `options`.
+
+### RelativeTimeResolver (named export)
+
+Resolves the relative difference without formatting, returning `{ value, unit }`.
+
+#### Constructor
+
+`new RelativeTimeResolver(options?)`
+
+- `options.threshold` — override the thresholds used by best-fit.
+- `options.units` — override the units considered by the resolver.
+
+#### `resolve(date, { now, unit = "best-fit" } = {})`
+
+- `date` — `Temporal.PlainDateTime` or `Temporal.ZonedDateTime`.
+- `now` — must match the `date` type; for zoned dates, the time zone must match. If omitted, `Temporal.Now` is used accordingly.
+- `unit` —
+  - `"best-fit"` (default): chooses a unit using thresholds and returns `{ unit, value }`.
+  - Any supported unit (`second`, `minute`, `hour`, `day`, `month`, `year`): returns `{ unit, value }` using that exact unit (signed, truncated difference). The hour edge-case is handled so very recent past returns `-1` hour instead of `0` hours.
+
+#### Return
+
+An object `{ value, unit }` with the signed difference and chosen unit.
 
 ## Appendix
 
