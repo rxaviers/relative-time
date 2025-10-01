@@ -141,12 +141,13 @@ function differenceInUnit(now, target, unit) {
   return duration[unit + "s"];
 }
 
-export default class RelativeTime {
-  constructor() {
-    this.formatters = RelativeTime.initializeFormatters(...arguments);
+export class RelativeTimeResolver {
+  constructor(options = {}) {
+    this.threshold = options.threshold || this.constructor.threshold;
+    this.units = options.units || this.constructor.units;
   }
 
-  format(date, { unit = "best-fit", now } = {}) {
+  resolve(date, { now, unit = "best-fit" } = {}) {
     const Temporal = getTemporal();
     let target;
     let resolvedNow;
@@ -166,54 +167,59 @@ export default class RelativeTime {
 
     const diff = Object.create(null);
     const absDiff = Object.create(null);
-    const diffUnits = [
-      "year",
-      "month",
-      /* "week", */ "day",
-      "hour",
-      "minute",
-      "second",
-    ];
+    const diffUnits = this.units;
 
-    diffUnits.forEach(function (currentUnit) {
-      defineCachedGetter(diff, currentUnit, function () {
+    diffUnits.forEach((currentUnit) => {
+      defineCachedGetter(diff, currentUnit, () => {
         return differenceInUnit(resolvedNow, target, currentUnit);
       });
 
-      defineCachedGetter(absDiff, currentUnit, function () {
+      defineCachedGetter(absDiff, currentUnit, () => {
         return Math.abs(diff[currentUnit]);
       });
     });
 
-    if (unit === "best-fit") {
-      unit = RelativeTime.bestFit(absDiff);
-    }
+    const resolvedUnit =
+      unit === "best-fit"
+        ? this.constructor.bestFit(absDiff, this.threshold)
+        : unit;
 
-    return this.formatters[unit](diff[unit]);
+    return {
+      unit: resolvedUnit,
+      value: diff[resolvedUnit],
+    };
+  }
+
+  static bestFit(absDiff, threshold = this.threshold) {
+    switch (true) {
+      case absDiff.year > 0 && absDiff.month > threshold.month:
+        return "year";
+      case absDiff.month > 0 && absDiff.day > threshold.day:
+        return "month";
+      // case absDiff.month > 0 && absDiff.week > threshold.week: return "month";
+      // case absDiff.week > 0 && absDiff.day > threshold.day: return "week";
+      case absDiff.day > 0 && absDiff.hour > threshold.hour:
+        return "day";
+      case absDiff.hour > 0 && absDiff.minute > threshold.minute:
+        return "hour";
+      case absDiff.minute > 0 && absDiff.second > threshold.second:
+        return "minute";
+      default:
+        return "second";
+    }
   }
 }
 
-RelativeTime.bestFit = function (absDiff) {
-  const threshold = this.threshold;
-  switch (true) {
-    case absDiff.year > 0 && absDiff.month > threshold.month:
-      return "year";
-    case absDiff.month > 0 && absDiff.day > threshold.day:
-      return "month";
-    // case absDiff.month > 0 && absDiff.week > threshold.week: return "month";
-    // case absDiff.week > 0 && absDiff.day > threshold.day: return "week";
-    case absDiff.day > 0 && absDiff.hour > threshold.hour:
-      return "day";
-    case absDiff.hour > 0 && absDiff.minute > threshold.minute:
-      return "hour";
-    case absDiff.minute > 0 && absDiff.second > threshold.second:
-      return "minute";
-    default:
-      return "second";
-  }
-};
+RelativeTimeResolver.units = [
+  "year",
+  "month",
+  /* "week", */ "day",
+  "hour",
+  "minute",
+  "second",
+];
 
-RelativeTime.threshold = {
+RelativeTimeResolver.threshold = {
   month: 2,
   // week: 4,
   day: 6,
@@ -221,6 +227,26 @@ RelativeTime.threshold = {
   minute: 59,
   second: 59,
 };
+
+export default class RelativeTime {
+  constructor() {
+    this.formatters = RelativeTime.initializeFormatters(...arguments);
+    this.resolver = new RelativeTimeResolver();
+  }
+
+  format(date, options = {}) {
+    const { unit = "best-fit", now } = options;
+    const { unit: resolvedUnit, value } = this.resolver.resolve(date, {
+      unit,
+      now,
+    });
+
+    return this.formatters[resolvedUnit](value);
+  }
+}
+
+RelativeTime.bestFit = RelativeTimeResolver.bestFit;
+RelativeTime.threshold = RelativeTimeResolver.threshold;
 
 RelativeTime.initializeFormatters = function (localesOrFormatter, options) {
   let locales = localesOrFormatter;

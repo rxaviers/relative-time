@@ -1,4 +1,4 @@
-import RelativeTime from "../src/relative-time";
+import RelativeTime, { RelativeTimeResolver } from "../src/relative-time";
 import { Temporal as TemporalPolyfill } from "@js-temporal/polyfill";
 
 function plain(dateTime) {
@@ -13,6 +13,7 @@ describe("relative-time", function () {
   let relativeTime;
   let originalTemporal;
   let baseNow;
+  let resolver;
 
   before(function () {
     originalTemporal = global.Temporal;
@@ -25,7 +26,27 @@ describe("relative-time", function () {
 
   beforeEach(function () {
     relativeTime = new RelativeTime();
+    resolver = new RelativeTimeResolver();
     baseNow = plain("2016-04-10T12:00:00");
+  });
+
+  describe("resolver", function () {
+    it("should resolve best-fit unit and value", function () {
+      const result = resolver.resolve(plain("2016-04-10T11:59:01"), {
+        now: baseNow,
+      });
+
+      expect(result).to.deep.equal({ unit: "second", value: -59 });
+    });
+
+    it("should resolve using an explicit unit", function () {
+      const result = resolver.resolve(plain("2016-04-10T11:01:00"), {
+        now: baseNow,
+        unit: "hour",
+      });
+
+      expect(result).to.deep.equal({ unit: "hour", value: -1 });
+    });
   });
 
   describe("bestFit", function () {
