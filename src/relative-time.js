@@ -143,12 +143,13 @@ function differenceInUnit(now, target, unit) {
 
 export class RelativeTimeResolver {
   constructor(options = {}) {
+    this.Temporal = options.Temporal || this.constructor.Temporal;
     this.threshold = options.threshold || this.constructor.threshold;
     this.units = options.units || this.constructor.units;
   }
 
   resolve(date, { now, unit = "best-fit" } = {}) {
-    const Temporal = getTemporal();
+    const Temporal = this.Temporal || getTemporal();
     let target;
     let resolvedNow;
 
