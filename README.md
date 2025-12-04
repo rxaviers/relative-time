@@ -15,11 +15,26 @@ Built on **Temporal** for precise date math and **Intl.RelativeTimeFormat** for 
 
 ```bash
 npm install relative-time
-# If your environment doesn't yet support Temporal:
+```
+
+### Temporal polyfill
+
+This library expects **Temporal**. Use it where Temporal is available, or load the official polyfill:
+
+```bash
 npm install @js-temporal/polyfill
 ```
 
-> This library expects **Temporal**. Use it where Temporal is available (or load the official polyfill).
+When using `@js-temporal/polyfill`, **inject** `Temporal` when constructing `RelativeTime`/`RelativeTimeResolver`:
+
+```js
+import RelativeTime, { RelativeTimeResolver } from "relative-time";
+import { Temporal } from "@js-temporal/polyfill";
+
+const rt = new RelativeTime({ Temporal });
+// or:
+const resolver = new RelativeTimeResolver({ Temporal });
+```
 
 ## Quick start
 
